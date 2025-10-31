@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Read(//c/projects/crm-client/**)",
+      "Read(//c/projects/sendy-client/**)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}
