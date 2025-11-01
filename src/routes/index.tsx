@@ -5,6 +5,9 @@ import Login from "@/pages/Login";
 import Unauthorized from "@/pages/Unauthorized";
 import NotFound from "@/pages/NotFound";
 import Dashboard from "@/pages/dashboard/Dashboard";
+import WriteContent from "@/pages/dashboard/WriteContent";
+import Businesses from "@/pages/dashboard/Businesses";
+import Links from "@/pages/dashboard/Links";
 import AdminDashboard from "@/pages/admin/Dashboard";
 import { withAuth } from "@/utils/withAuth";
 import { role } from "@/constants/role";
@@ -31,6 +34,9 @@ export const router = createBrowserRouter([
     path: "/dashboard",
     children: [
       { index: true, Component: Dashboard },
+      { path: "write", Component: WriteContent },
+      { path: "businesses", Component: Businesses },
+      { path: "links", Component: Links },
     ],
   },
   {

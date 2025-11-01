@@ -4,6 +4,9 @@ import {
   Building2,
   ListTodo,
   Settings,
+  FileText,
+  PenSquare,
+  Link as LinkIcon,
 } from "lucide-react";
 import { Link, useLocation } from "react-router";
 import {
@@ -19,17 +22,17 @@ import {
 } from "@/components/ui/sidebar";
 import { useGetCurrentUserQuery } from "@/redux/features/auth/authApi";
 
-// Navigation items
+// Navigation items for normal users
 const navMain = [
   {
-    title: "Dashboard",
+    title: "All Contents",
     url: "/dashboard",
-    icon: Home,
+    icon: FileText,
   },
   {
-    title: "Users",
-    url: "/dashboard/users",
-    icon: Users,
+    title: "Write Content",
+    url: "/dashboard/write",
+    icon: PenSquare,
   },
   {
     title: "Businesses",
@@ -37,9 +40,9 @@ const navMain = [
     icon: Building2,
   },
   {
-    title: "Tasks",
-    url: "/dashboard/tasks",
-    icon: ListTodo,
+    title: "Links",
+    url: "/dashboard/links",
+    icon: LinkIcon,
   },
 ];
 
