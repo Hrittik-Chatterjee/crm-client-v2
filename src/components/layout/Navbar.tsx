@@ -25,28 +25,19 @@ export default function Navbar() {
   const isAdmin = data?.data?.roles.includes(role.admin) || data?.data?.roles.includes(role.superAdmin);
 
   return (
-    <nav className="border-b bg-card">
-      <div className="container mx-auto flex h-16 items-center justify-between px-4">
-        <div className="flex items-center gap-6">
-          <Link to="/dashboard" className="text-xl font-bold">
-            CRM Client v2
-          </Link>
-          {isAdmin && (
-            <Link 
-              to="/admin/dashboard" 
-              className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
-            >
-              Admin Dashboard
-            </Link>
-          )}
-        </div>
-        <div className="flex items-center gap-4">
-          <ModeToggle />
-          <Button variant="outline" onClick={handleLogout}>
-            Logout
-          </Button>
-        </div>
-      </div>
-    </nav>
+    <div className="flex items-center gap-4">
+      {isAdmin && (
+        <Link 
+          to="/admin/dashboard" 
+          className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
+        >
+          Admin Dashboard
+        </Link>
+      )}
+      <ModeToggle />
+      <Button variant="outline" onClick={handleLogout}>
+        Logout
+      </Button>
+    </div>
   );
 }

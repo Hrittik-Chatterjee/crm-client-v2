@@ -2,7 +2,9 @@
   "permissions": {
     "allow": [
       "Read(//c/projects/crm-client/**)",
-      "Read(//c/projects/sendy-client/**)"
+      "Read(//c/projects/sendy-client/**)",
+      "Bash(yes:*)",
+      "Bash(npx shadcn@latest add breadcrumb:*)"
     ],
     "deny": [],
     "ask": []
