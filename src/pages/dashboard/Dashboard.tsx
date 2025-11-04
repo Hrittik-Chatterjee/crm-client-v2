@@ -26,67 +26,46 @@ import {
 import { format } from "date-fns";
 import { Switch } from "@/components/ui/switch";
 import { Filter, Check, ChevronDown } from "lucide-react";
+import { useGetAllBusinessesQuery } from "@/redux/features/business/businessApi";
+import {
+  useGetAllRegularContentsQuery,
+  useUpdateRegularContentMutation,
+  RegularContent,
+} from "@/redux/features/content/contentApi";
 
-// Sample data type
+// Content type for table display
 type Content = {
   id: string;
   businessName: string;
   date: string;
-  status: "Done" | "Pending" | "In Progress";
+  status: boolean;
+  contentType: string;
+  postMaterial?: string;
+  tags?: string;
+  videoMaterial?: string;
+  vision?: string;
+  posterMaterial?: string;
+  comments?: string;
 };
 
-// Sample businesses list
-const businesses = [
-  "All Businesses",
-  "Joshan Of Wye",
-  "The Shahin Restaurant",
-  "KESS (Kent Elite Sporting Society)",
-];
+console.log("from dashboard");
 
 // Status list for filtering
 const statuses = ["Done", "Pending"];
-
-// Sample data with mutable status for demonstration
-const initialContents: Content[] = [
-  {
-    id: "1",
-    businessName: "Joshan Of Wye",
-    date: "30/10/2025",
-    status: "Pending",
-  },
-  {
-    id: "2",
-    businessName: "The Shahin Restaurant",
-    date: "30/10/2025",
-    status: "Done",
-  },
-  {
-    id: "3",
-    businessName: "KESS (Kent Elite Sporting Society)",
-    date: "30/10/2025",
-    status: "Done",
-  },
-  {
-    id: "4",
-    businessName: "KESS (Kent Elite Sporting Society)",
-    date: "30/10/2025",
-    status: "Done",
-  },
-];
 
 // StatusSwitch component for each row
 function StatusSwitch({
   initialStatus,
   onStatusChange,
 }: {
-  initialStatus: string;
-  onStatusChange: (newStatus: "Done" | "Pending") => void;
+  initialStatus: boolean;
+  onStatusChange: (newStatus: boolean) => void;
 }) {
-  const [checked, setChecked] = useState<boolean>(initialStatus === "Done");
+  const [checked, setChecked] = useState<boolean>(initialStatus);
 
   const handleChange = (newChecked: boolean) => {
     setChecked(newChecked);
-    onStatusChange(newChecked ? "Done" : "Pending");
+    onStatusChange(newChecked);
   };
 
   return (
@@ -115,7 +94,7 @@ function StatusSwitch({
 
 // Define columns - will be created inside component to access state
 const createColumns = (
-  handleStatusChange: (id: string, newStatus: "Done" | "Pending") => void
+  handleStatusChange: (id: string, newStatus: boolean) => void
 ): ColumnDef<Content>[] => [
   {
     accessorKey: "businessName",
@@ -132,23 +111,38 @@ const createColumns = (
     },
   },
   {
-    accessorKey: "status",
-    header: () => <div className="text-center">Status</div>,
+    accessorKey: "contentType",
+    header: () => <div className="text-center">Content Type</div>,
     cell: ({ row }) => {
-      const status = row.getValue("status") as string;
+      const contentType = row.getValue("contentType") as string;
       return (
         <div className="text-center">
           <Badge
-            variant={status === "Done" ? "default" : "outline"}
+            variant="outline"
+            className="min-w-20 inline-flex justify-center bg-purple-100 text-purple-700 hover:bg-purple-200 border-purple-300 dark:bg-purple-950/40 dark:text-purple-400 dark:hover:bg-purple-950/60 dark:border-purple-800"
+          >
+            {contentType.toUpperCase()}
+          </Badge>
+        </div>
+      );
+    },
+  },
+  {
+    accessorKey: "status",
+    header: () => <div className="text-center">Status</div>,
+    cell: ({ row }) => {
+      const status = row.getValue("status") as boolean;
+      return (
+        <div className="text-center">
+          <Badge
+            variant={status ? "default" : "outline"}
             className={
-              status === "Done"
+              status
                 ? "min-w-20 inline-flex justify-center bg-green-100 text-green-700 hover:bg-green-200 border-green-300 dark:bg-green-950/40 dark:text-green-400 dark:hover:bg-green-950/60 dark:border-green-800"
-                : status === "In Progress"
-                ? "min-w-20 inline-flex justify-center bg-yellow-100 text-yellow-700 hover:bg-yellow-200 border-yellow-300 dark:bg-yellow-950/40 dark:text-yellow-400 dark:hover:bg-yellow-950/60 dark:border-yellow-800"
                 : "min-w-20 inline-flex justify-center bg-red-100 text-red-700 hover:bg-red-200 border-red-300 dark:bg-red-950/40 dark:text-red-400 dark:hover:bg-red-950/60 dark:border-red-800"
             }
           >
-            {status}
+            {status ? "Done" : "Pending"}
           </Badge>
         </div>
       );
@@ -158,7 +152,7 @@ const createColumns = (
     id: "changeStatus",
     header: () => <div className="text-center">Change Status</div>,
     cell: ({ row }) => {
-      const status = row.getValue("status") as string;
+      const status = row.getValue("status") as boolean;
       return (
         <StatusSwitch
           initialStatus={status}
@@ -204,17 +198,55 @@ const createColumns = (
 
 export default function Dashboard() {
   const [date, setDate] = useState<Date>(new Date());
-  const [contents, setContents] = useState<Content[]>(initialContents);
-  const [selectedBusiness, setSelectedBusiness] = useState<string>("All Businesses");
+  const [selectedBusiness, setSelectedBusiness] =
+    useState<string>("All Businesses");
   const [selectedStatus, setSelectedStatus] = useState<string | null>(null);
   const [isBusinessSheetOpen, setIsBusinessSheetOpen] = useState(false);
 
-  const handleStatusChange = (id: string, newStatus: "Done" | "Pending") => {
-    setContents((prevContents) =>
-      prevContents.map((content) =>
-        content.id === id ? { ...content, status: newStatus } : content
-      )
-    );
+  // RTK Query hooks
+  const { data: businessesData, isLoading: isLoadingBusinesses } =
+    useGetAllBusinessesQuery();
+  const { data: contentsData, isLoading: isLoadingContents } =
+    useGetAllRegularContentsQuery({
+      date: format(date, "MM/dd/yyyy"),
+    });
+  const [updateContent] = useUpdateRegularContentMutation();
+
+  // Transform API data to table format
+  const contents: Content[] =
+    contentsData?.data?.map((content: RegularContent) => ({
+      id: content._id,
+      businessName:
+        typeof content.business === "string"
+          ? businessesData?.data?.find((b) => b._id === content.business)
+              ?.businessName || "Unknown"
+          : content.business?.businessName || "Unknown",
+      date: content.date,
+      status: content.status,
+      contentType: content.contentType,
+      postMaterial: content.postMaterial,
+      tags: content.tags,
+      videoMaterial: content.videoMaterial,
+      vision: content.vision,
+      posterMaterial: content.posterMaterial,
+      comments: content.comments,
+    })) || [];
+  console.log("Contents array:", contents);
+  const businesses = [
+    "All Businesses",
+    ...(businessesData?.data?.map((b) => b.businessName) || []),
+  ];
+
+  const handleStatusChange = async (id: string, newStatus: boolean) => {
+    try {
+      await updateContent({
+        id,
+        data: { status: newStatus },
+      }).unwrap();
+    } catch (error) {
+      console.error("Failed to update status:", error);
+      alert("Failed to update status. Please try again.");
+    }
   };
 
   const handleBusinessSelect = (business: string) => {
@@ -230,14 +262,31 @@ export default function Dashboard() {
   let filteredContents = contents;
 
   if (selectedBusiness !== "All Businesses") {
-    filteredContents = filteredContents.filter(content => content.businessName === selectedBusiness);
+    filteredContents = filteredContents.filter(
+      (content) => content.businessName === selectedBusiness
+    );
   }
 
   if (selectedStatus) {
-    filteredContents = filteredContents.filter(content => content.status === selectedStatus);
+    const statusBool = selectedStatus === "Done";
+    filteredContents = filteredContents.filter(
+      (content) => content.status === statusBool
+    );
   }
 
   const columns = createColumns(handleStatusChange);
+
+  // Show loading state
+  if (isLoadingBusinesses || isLoadingContents) {
+    return (
+      <div className="flex items-center justify-center h-96">
+        <div className="text-center space-y-4">
+          <div className="h-12 w-12 animate-spin rounded-full border-4 border-blue-600 border-t-transparent mx-auto" />
+          <p className="text-muted-foreground">Loading content...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -300,7 +349,9 @@ export default function Dashboard() {
                   className="gap-2 hover:bg-white hover:border-blue-600 transition-all dark:hover:bg-blue-950/40 dark:hover:border-blue-600"
                 >
                   <Filter className="h-4 w-4" />
-                  {selectedStatus ? `Status: ${selectedStatus}` : "Filter by Status"}
+                  {selectedStatus
+                    ? `Status: ${selectedStatus}`
+                    : "Filter by Status"}
                   <ChevronDown className="h-4 w-4 opacity-50" />
                 </Button>
               </DropdownMenuTrigger>
@@ -330,20 +381,27 @@ export default function Dashboard() {
                   >
                     <span className="flex items-center justify-between w-full">
                       {status}
-                      {selectedStatus === status && <Check className="h-4 w-4" />}
+                      {selectedStatus === status && (
+                        <Check className="h-4 w-4" />
+                      )}
                     </span>
                   </DropdownMenuItem>
                 ))}
               </DropdownMenuContent>
             </DropdownMenu>
-            <Sheet open={isBusinessSheetOpen} onOpenChange={setIsBusinessSheetOpen}>
+            <Sheet
+              open={isBusinessSheetOpen}
+              onOpenChange={setIsBusinessSheetOpen}
+            >
               <SheetTrigger asChild>
                 <Button
                   variant="outline"
                   className="gap-2 hover:bg-white hover:border-blue-600 transition-all dark:hover:bg-blue-950/40 dark:hover:border-blue-600"
                 >
                   <Filter className="h-4 w-4" />
-                  {selectedBusiness === "All Businesses" ? "Filter by Business" : selectedBusiness}
+                  {selectedBusiness === "All Businesses"
+                    ? "Filter by Business"
+                    : selectedBusiness}
                 </Button>
               </SheetTrigger>
               <SheetContent className="w-[400px] sm:w-[540px]">

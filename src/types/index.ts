@@ -1,3 +1,5 @@
+import type { ComponentType } from "react";
+
 export interface User {
   _id: string;
   username: string;
@@ -18,4 +20,13 @@ export interface AuthResponse {
 export interface LoginCredentials {
   username: string;
   password: string;
+}
+
+export interface ISidebarItem {
+  title: string;
+  items: {
+    title: string;
+    url: string;
+    component: ComponentType;
+  }[];
 }

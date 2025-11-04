@@ -3,37 +3,19 @@ import { format } from "date-fns";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Button } from "@/components/ui/button";
-import { CalendarIcon, Home, Users, Building2, ListTodo, Menu, X } from "lucide-react";
+import { CalendarIcon, Menu, X } from "lucide-react";
 import { Link, useLocation } from "react-router";
 import { cn } from "@/lib/utils";
-
-const navItems = [
-  {
-    title: "Dashboard",
-    href: "/dashboard",
-    icon: Home,
-  },
-  {
-    title: "Users",
-    href: "/dashboard/users",
-    icon: Users,
-  },
-  {
-    title: "Businesses",
-    href: "/dashboard/businesses",
-    icon: Building2,
-  },
-  {
-    title: "Tasks",
-    href: "/dashboard/tasks",
-    icon: ListTodo,
-  },
-];
+import { useGetCurrentUserQuery } from "@/redux/features/auth/authApi";
+import { getSidebarItems } from "@/utils/getSidebarItems";
 
 export default function Sidebar() {
   const [date, setDate] = useState<Date>(new Date());
   const [isOpen, setIsOpen] = useState(true);
   const location = useLocation();
+  const { data: userData } = useGetCurrentUserQuery();
+
+  const sidebarSections = getSidebarItems(userData?.data?.roles);
 
   return (
     <>
@@ -83,35 +65,41 @@ export default function Sidebar() {
                   mode="single"
                   selected={date}
                   onSelect={(newDate) => newDate && setDate(newDate)}
-                  initialFocus
                 />
               </PopoverContent>
             </Popover>
           </div>
 
           {/* Navigation Links */}
-          <nav className="flex-1 space-y-1 p-4">
-            {navItems.map((item) => {
-              const Icon = item.icon;
-              const isActive = location.pathname === item.href;
+          <nav className="flex-1 space-y-4 overflow-y-auto p-4">
+            {sidebarSections.map((section) => (
+              <div key={section.title}>
+                <p className="mb-2 px-3 text-xs font-semibold text-muted-foreground uppercase">
+                  {section.title}
+                </p>
+                <div className="space-y-1">
+                  {section.items.map((item) => {
+                    const isActive = location.pathname === item.url;
 
-              return (
-                <Link
-                  key={item.href}
-                  to={item.href}
-                  onClick={() => setIsOpen(false)}
-                  className={cn(
-                    "flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors",
-                    isActive
-                      ? "bg-primary text-primary-foreground"
-                      : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
-                  )}
-                >
-                  <Icon className="h-4 w-4" />
-                  {item.title}
-                </Link>
-              );
-            })}
+                    return (
+                      <Link
+                        key={item.url}
+                        to={item.url}
+                        onClick={() => setIsOpen(false)}
+                        className={cn(
+                          "flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors",
+                          isActive
+                            ? "bg-primary text-primary-foreground"
+                            : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+                        )}
+                      >
+                        {item.title}
+                      </Link>
+                    );
+                  })}
+                </div>
+              </div>
+            ))}
           </nav>
         </div>
       </div>

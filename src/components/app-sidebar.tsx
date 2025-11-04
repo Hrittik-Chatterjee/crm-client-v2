@@ -1,12 +1,6 @@
 import {
   Home,
-  Users,
-  Building2,
-  ListTodo,
   Settings,
-  FileText,
-  PenSquare,
-  Link as LinkIcon,
 } from "lucide-react";
 import { Link, useLocation } from "react-router";
 import {
@@ -21,42 +15,13 @@ import {
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
 import { useGetCurrentUserQuery } from "@/redux/features/auth/authApi";
-
-// Navigation items for normal users
-const navMain = [
-  {
-    title: "All Contents",
-    url: "/dashboard",
-    icon: FileText,
-  },
-  {
-    title: "Write Content",
-    url: "/dashboard/write",
-    icon: PenSquare,
-  },
-  {
-    title: "Businesses",
-    url: "/dashboard/businesses",
-    icon: Building2,
-  },
-  {
-    title: "Links",
-    url: "/dashboard/links",
-    icon: LinkIcon,
-  },
-];
-
-const navSecondary = [
-  {
-    title: "Settings",
-    url: "/dashboard/settings",
-    icon: Settings,
-  },
-];
+import { getSidebarItems } from "@/utils/getSidebarItems";
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const { data: userData } = useGetCurrentUserQuery();
   const location = useLocation();
+
+  const sidebarSections = getSidebarItems(userData?.data?.roles);
 
   return (
     <Sidebar collapsible="icon" {...props}>
@@ -78,40 +43,36 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         </SidebarMenu>
       </SidebarHeader>
       <SidebarContent>
-        <SidebarGroup>
-          <SidebarGroupLabel>Platform</SidebarGroupLabel>
-          <SidebarMenu>
-            {navMain.map((item) => {
-              const isActive = location.pathname === item.url;
-              return (
-                <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton asChild isActive={isActive} tooltip={item.title}>
-                    <Link to={item.url}>
-                      <item.icon />
-                      <span>{item.title}</span>
-                    </Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              );
-            })}
-          </SidebarMenu>
-        </SidebarGroup>
+        {sidebarSections.map((section) => (
+          <SidebarGroup key={section.title}>
+            <SidebarGroupLabel>{section.title}</SidebarGroupLabel>
+            <SidebarMenu>
+              {section.items.map((item) => {
+                const isActive = location.pathname === item.url;
+                return (
+                  <SidebarMenuItem key={item.title}>
+                    <SidebarMenuButton asChild isActive={isActive} tooltip={item.title}>
+                      <Link to={item.url}>
+                        <span>{item.title}</span>
+                      </Link>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                );
+              })}
+            </SidebarMenu>
+          </SidebarGroup>
+        ))}
         <SidebarGroup className="mt-auto">
           <SidebarGroupLabel>Other</SidebarGroupLabel>
           <SidebarMenu>
-            {navSecondary.map((item) => {
-              const isActive = location.pathname === item.url;
-              return (
-                <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton asChild isActive={isActive} tooltip={item.title}>
-                    <Link to={item.url}>
-                      <item.icon />
-                      <span>{item.title}</span>
-                    </Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              );
-            })}
+            <SidebarMenuItem>
+              <SidebarMenuButton asChild isActive={location.pathname === "/dashboard/settings"} tooltip="Settings">
+                <Link to="/dashboard/settings">
+                  <Settings />
+                  <span>Settings</span>
+                </Link>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
           </SidebarMenu>
         </SidebarGroup>
       </SidebarContent>

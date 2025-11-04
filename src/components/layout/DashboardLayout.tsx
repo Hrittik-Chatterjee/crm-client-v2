@@ -7,8 +7,6 @@ import {
   BreadcrumbItem,
   BreadcrumbLink,
   BreadcrumbList,
-  BreadcrumbPage,
-  BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
 import { Button } from "@/components/ui/button";
 import { useLogoutMutation, useGetCurrentUserQuery } from "@/redux/features/auth/authApi";
@@ -34,6 +32,7 @@ export default function DashboardLayout() {
 
   // Check if user is admin or super admin
   const isAdmin = data?.data?.roles.includes(role.admin) || data?.data?.roles.includes(role.superAdmin);
+  const isOnAdminRoute = window.location.pathname.startsWith('/admin');
 
   return (
     <SidebarProvider>
@@ -45,7 +44,7 @@ export default function DashboardLayout() {
           <Breadcrumb>
             <BreadcrumbList>
               <BreadcrumbItem className="hidden md:block">
-                <BreadcrumbLink href="/dashboard">
+                <BreadcrumbLink href={isOnAdminRoute ? "/admin/dashboard" : "/dashboard"}>
                   CRM Client v2
                 </BreadcrumbLink>
               </BreadcrumbItem>
@@ -53,12 +52,23 @@ export default function DashboardLayout() {
           </Breadcrumb>
           <div className="ml-auto flex items-center gap-4">
             {isAdmin && (
-              <Link 
-                to="/admin/dashboard" 
-                className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
-              >
-                Admin
-              </Link>
+              <>
+                {isOnAdminRoute ? (
+                  <Link
+                    to="/dashboard"
+                    className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
+                  >
+                    View Dashboard
+                  </Link>
+                ) : (
+                  <Link
+                    to="/admin/dashboard"
+                    className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
+                  >
+                    Admin Panel
+                  </Link>
+                )}
+              </>
             )}
             <ModeToggle />
             <Button variant="outline" size="sm" onClick={handleLogout}>
