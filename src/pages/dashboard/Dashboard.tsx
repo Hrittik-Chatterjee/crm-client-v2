@@ -2,7 +2,7 @@ import { DataTable } from "@/components/data-table";
 import { ColumnDef } from "@tanstack/react-table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { useState } from "react";
+import { useState, useMemo, useCallback } from "react";
 import { Calendar } from "@/components/ui/calendar";
 import {
   Popover,
@@ -203,7 +203,7 @@ export default function Dashboard() {
   const [selectedStatus, setSelectedStatus] = useState<string | null>(null);
   const [isBusinessSheetOpen, setIsBusinessSheetOpen] = useState(false);
 
-  // RTK Query hooks
+  // RTK Query hooks - Use backend date filtering for better performance with large datasets
   const { data: businessesData, isLoading: isLoadingBusinesses } =
     useGetAllBusinessesQuery();
   const { data: contentsData, isLoading: isLoadingContents } =
@@ -212,42 +212,53 @@ export default function Dashboard() {
     });
   const [updateContent] = useUpdateRegularContentMutation();
 
-  // Transform API data to table format
-  const contents: Content[] =
-    contentsData?.data?.map((content: RegularContent) => ({
-      id: content._id,
-      businessName:
-        typeof content.business === "string"
-          ? businessesData?.data?.find((b) => b._id === content.business)
-              ?.businessName || "Unknown"
-          : content.business?.businessName || "Unknown",
-      date: content.date,
-      status: content.status,
-      contentType: content.contentType,
-      postMaterial: content.postMaterial,
-      tags: content.tags,
-      videoMaterial: content.videoMaterial,
-      vision: content.vision,
-      posterMaterial: content.posterMaterial,
-      comments: content.comments,
-    })) || [];
-  console.log("Contents array:", contents);
-  const businesses = [
-    "All Businesses",
-    ...(businessesData?.data?.map((b) => b.businessName) || []),
-  ];
+  // Transform API data to table format - memoize to prevent unnecessary recalculations
+  const contents: Content[] = useMemo(
+    () =>
+      contentsData?.data?.map((content: RegularContent) => ({
+        id: content._id,
+        businessName:
+          typeof content.business === "string"
+            ? businessesData?.data?.find((b) => b._id === content.business)
+                ?.businessName || "Unknown"
+            : content.business?.businessName || "Unknown",
+        date: content.date,
+        status: content.status,
+        contentType: content.contentType,
+        postMaterial: content.postMaterial,
+        tags: content.tags,
+        videoMaterial: content.videoMaterial,
+        vision: content.vision,
+        posterMaterial: content.posterMaterial,
+        comments: content.comments,
+      })) || [],
+    [contentsData, businessesData]
+  );
 
-  const handleStatusChange = async (id: string, newStatus: boolean) => {
-    try {
-      await updateContent({
-        id,
-        data: { status: newStatus },
-      }).unwrap();
-    } catch (error) {
-      console.error("Failed to update status:", error);
-      alert("Failed to update status. Please try again.");
-    }
-  };
+  console.log("Contents array:", contents);
+
+  const businesses = useMemo(
+    () => [
+      "All Businesses",
+      ...(businessesData?.data?.map((b) => b.businessName) || []),
+    ],
+    [businessesData]
+  );
+
+  const handleStatusChange = useCallback(
+    async (id: string, newStatus: boolean) => {
+      try {
+        await updateContent({
+          id,
+          data: { status: newStatus },
+        }).unwrap();
+      } catch (error) {
+        console.error("Failed to update status:", error);
+        alert("Failed to update status. Please try again.");
+      }
+    },
+    [updateContent]
+  );
 
   const handleBusinessSelect = (business: string) => {
     setSelectedBusiness(business);
@@ -258,23 +269,30 @@ export default function Dashboard() {
     setSelectedStatus(status);
   };
 
-  // Filter contents based on selected business and status
-  let filteredContents = contents;
+  // Filter contents by business and status (date is filtered by backend)
+  const filteredContents = useMemo(() => {
+    let filtered = contents;
 
-  if (selectedBusiness !== "All Businesses") {
-    filteredContents = filteredContents.filter(
-      (content) => content.businessName === selectedBusiness
-    );
-  }
+    // Filter by business
+    if (selectedBusiness !== "All Businesses") {
+      filtered = filtered.filter(
+        (content) => content.businessName === selectedBusiness
+      );
+    }
 
-  if (selectedStatus) {
-    const statusBool = selectedStatus === "Done";
-    filteredContents = filteredContents.filter(
-      (content) => content.status === statusBool
-    );
-  }
+    // Filter by status
+    if (selectedStatus) {
+      const statusBool = selectedStatus === "Done";
+      filtered = filtered.filter((content) => content.status === statusBool);
+    }
 
-  const columns = createColumns(handleStatusChange);
+    return filtered;
+  }, [contents, selectedBusiness, selectedStatus]);
+
+  const columns = useMemo(
+    () => createColumns(handleStatusChange),
+    [handleStatusChange]
+  );
 
   // Show loading state
   if (isLoadingBusinesses || isLoadingContents) {
@@ -292,7 +310,7 @@ export default function Dashboard() {
     <div className="space-y-6">
       <div className="flex items-center justify-between bg-linear-to-r from-blue-50 to-purple-50 dark:from-blue-950/20 dark:to-purple-950/20 p-6 rounded-lg border">
         <div>
-          <h2 className="text-3xl font-bold bg-linear-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+          <h2 className="text-3xl font-bold bg-linear-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent flex items-center gap-2">
             Content
           </h2>
           <p className="text-sm text-muted-foreground mt-1">
