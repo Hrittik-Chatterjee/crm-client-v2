@@ -2,8 +2,11 @@ import { DataTable } from "@/components/data-table";
 import { ColumnDef } from "@tanstack/react-table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { useState, useMemo, useCallback } from "react";
+import { useState, useMemo, useCallback, useEffect } from "react";
 import { Calendar } from "@/components/ui/calendar";
+import { ViewContentDialog } from "@/components/ViewContentDialog";
+import { useSocket } from "@/hooks/useSocket";
+import { toast } from "sonner";
 import {
   Popover,
   PopoverContent,
@@ -31,7 +34,9 @@ import {
   useGetAllRegularContentsQuery,
   useUpdateRegularContentMutation,
   RegularContent,
+  contentApi,
 } from "@/redux/features/content/contentApi";
+import { useAppDispatch } from "@/redux/hook";
 
 // Content type for table display
 type Content = {
@@ -94,7 +99,8 @@ function StatusSwitch({
 
 // Define columns - will be created inside component to access state
 const createColumns = (
-  handleStatusChange: (id: string, newStatus: boolean) => void
+  handleStatusChange: (id: string, newStatus: boolean) => void,
+  handleView: (content: Content) => void
 ): ColumnDef<Content>[] => [
   {
     accessorKey: "businessName",
@@ -166,7 +172,7 @@ const createColumns = (
   {
     id: "action",
     header: () => <div className="text-center">Action</div>,
-    cell: () => {
+    cell: ({ row }) => {
       return (
         <div className="flex justify-center gap-2">
           <Button
@@ -179,6 +185,7 @@ const createColumns = (
           <Button
             size="sm"
             variant="outline"
+            onClick={() => handleView(row.original)}
             className="hover:bg-green-50 hover:text-green-600 hover:border-green-600 dark:hover:bg-green-950/40 dark:hover:text-green-400 dark:hover:border-green-600"
           >
             View
@@ -202,8 +209,11 @@ export default function Dashboard() {
     useState<string>("All Businesses");
   const [selectedStatus, setSelectedStatus] = useState<string | null>(null);
   const [isBusinessSheetOpen, setIsBusinessSheetOpen] = useState(false);
+  const [viewContent, setViewContent] = useState<Content | null>(null);
+  const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
 
   // RTK Query hooks - Use backend date filtering for better performance with large datasets
+  const dispatch = useAppDispatch();
   const { data: businessesData, isLoading: isLoadingBusinesses } =
     useGetAllBusinessesQuery();
   const { data: contentsData, isLoading: isLoadingContents } =
@@ -211,6 +221,30 @@ export default function Dashboard() {
       date: format(date, "MM/dd/yyyy"),
     });
   const [updateContent] = useUpdateRegularContentMutation();
+
+  // Socket.io connection and real-time updates
+  const { on } = useSocket();
+
+  useEffect(() => {
+    // Listen for new content notifications
+    const cleanup = on?.("new:content", (data: any) => {
+      console.log("📩 New content received:", data);
+
+      // Show toast notification
+      toast.success(`New ${data.type} content assigned to you!`, {
+        description: `${data.business} - ${data.message}`,
+      });
+
+      // Invalidate the content cache to refetch data
+      dispatch(
+        contentApi.util.invalidateTags([{ type: "CONTENT" }])
+      );
+    });
+
+    return () => {
+      cleanup?.();
+    };
+  }, [on, dispatch]);
 
   // Transform API data to table format - memoize to prevent unnecessary recalculations
   const contents: Content[] = useMemo(
@@ -269,6 +303,11 @@ export default function Dashboard() {
     setSelectedStatus(status);
   };
 
+  const handleView = (content: Content) => {
+    setViewContent(content);
+    setIsViewDialogOpen(true);
+  };
+
   // Filter contents by business and status (date is filtered by backend)
   const filteredContents = useMemo(() => {
     let filtered = contents;
@@ -283,14 +322,20 @@ export default function Dashboard() {
     // Filter by status
     if (selectedStatus) {
       const statusBool = selectedStatus === "Done";
-      filtered = filtered.filter((content) => content.status === statusBool);
+      filtered = filtered.filter((content) => {
+        // Ensure status is compared as boolean, handle both boolean and string types
+        const contentStatus = typeof content.status === 'string'
+          ? content.status === 'true'
+          : Boolean(content.status);
+        return contentStatus === statusBool;
+      });
     }
 
     return filtered;
   }, [contents, selectedBusiness, selectedStatus]);
 
   const columns = useMemo(
-    () => createColumns(handleStatusChange),
+    () => createColumns(handleStatusChange, handleView),
     [handleStatusChange]
   );
 
@@ -451,6 +496,13 @@ export default function Dashboard() {
             </Sheet>
           </>
         }
+      />
+
+      {/* View Content Dialog */}
+      <ViewContentDialog
+        content={viewContent}
+        open={isViewDialogOpen}
+        onOpenChange={setIsViewDialogOpen}
       />
     </div>
   );
