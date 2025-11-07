@@ -33,6 +33,7 @@ import { useGetAllBusinessesQuery } from "@/redux/features/business/businessApi"
 import {
   useGetAllRegularContentsQuery,
   useUpdateRegularContentMutation,
+  useDeleteRegularContentMutation,
   RegularContent,
   contentApi,
 } from "@/redux/features/content/contentApi";
@@ -100,7 +101,8 @@ function StatusSwitch({
 // Define columns - will be created inside component to access state
 const createColumns = (
   handleStatusChange: (id: string, newStatus: boolean) => void,
-  handleView: (content: Content) => void
+  handleView: (content: Content) => void,
+  handleDelete: (id: string) => void
 ): ColumnDef<Content>[] => [
   {
     accessorKey: "businessName",
@@ -193,6 +195,7 @@ const createColumns = (
           <Button
             size="sm"
             variant="outline"
+            onClick={() => handleDelete(row.original.id)}
             className="hover:bg-red-50 hover:text-red-600 hover:border-red-600 dark:hover:bg-red-950/40 dark:hover:text-red-400 dark:hover:border-red-600"
           >
             Delete
@@ -221,13 +224,14 @@ export default function Dashboard() {
       date: format(date, "MM/dd/yyyy"),
     });
   const [updateContent] = useUpdateRegularContentMutation();
+  const [deleteContent] = useDeleteRegularContentMutation();
 
   // Socket.io connection and real-time updates
   const { on } = useSocket();
 
   useEffect(() => {
     // Listen for new content notifications
-    const cleanup = on?.("new:content", (data: any) => {
+    const cleanupNew = on?.("new:content", (data: any) => {
       console.log("📩 New content received:", data);
 
       // Show toast notification
@@ -241,8 +245,40 @@ export default function Dashboard() {
       );
     });
 
+    // Listen for content update notifications
+    const cleanupUpdate = on?.("update:content", (data: any) => {
+      console.log("🔄 Content updated:", data);
+
+      // Show toast notification
+      toast.info(`Content has been updated!`, {
+        description: `${data.business} - ${data.message}`,
+      });
+
+      // Invalidate the content cache to refetch data
+      dispatch(
+        contentApi.util.invalidateTags([{ type: "CONTENT" }])
+      );
+    });
+
+    // Listen for content delete notifications
+    const cleanupDelete = on?.("delete:content", (data: any) => {
+      console.log("🗑️ Content deleted:", data);
+
+      // Show toast notification
+      toast.error(`Content has been deleted!`, {
+        description: `${data.business} - ${data.message}`,
+      });
+
+      // Invalidate the content cache to refetch data
+      dispatch(
+        contentApi.util.invalidateTags([{ type: "CONTENT" }])
+      );
+    });
+
     return () => {
-      cleanup?.();
+      cleanupNew?.();
+      cleanupUpdate?.();
+      cleanupDelete?.();
     };
   }, [on, dispatch]);
 
@@ -294,6 +330,24 @@ export default function Dashboard() {
     [updateContent]
   );
 
+  const handleDelete = useCallback(
+    async (id: string) => {
+      // Confirm before deleting
+      if (!window.confirm("Are you sure you want to delete this content?")) {
+        return;
+      }
+
+      try {
+        await deleteContent(id).unwrap();
+        toast.success("Content deleted successfully!");
+      } catch (error) {
+        console.error("Failed to delete content:", error);
+        toast.error("Failed to delete content. Please try again.");
+      }
+    },
+    [deleteContent]
+  );
+
   const handleBusinessSelect = (business: string) => {
     setSelectedBusiness(business);
     setIsBusinessSheetOpen(false);
@@ -335,8 +389,8 @@ export default function Dashboard() {
   }, [contents, selectedBusiness, selectedStatus]);
 
   const columns = useMemo(
-    () => createColumns(handleStatusChange, handleView),
-    [handleStatusChange]
+    () => createColumns(handleStatusChange, handleView, handleDelete),
+    [handleStatusChange, handleDelete]
   );
 
   // Show loading state

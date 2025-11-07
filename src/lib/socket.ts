@@ -19,17 +19,11 @@ class SocketClient {
 
   connect(authToken?: string) {
     if (this.socket?.connected) {
-      console.log("Socket already connected");
       return this.socket;
     }
 
     // Try to get token from parameter or cookie (non-httpOnly fallback)
     const token = authToken || getCookie("token");
-
-    console.log("🔌 Attempting socket connection...", {
-      url: SOCKET_URL,
-      hasToken: !!token,
-    });
 
     this.socket = io(SOCKET_URL, {
       // Send token in auth if available, otherwise rely on cookies
@@ -45,25 +39,8 @@ class SocketClient {
       reconnectionAttempts: 5,
     });
 
-    this.socket.on("connect", () => {
-      console.log("✅ Socket connected successfully!", {
-        id: this.socket?.id,
-        url: SOCKET_URL,
-      });
-    });
-
-    this.socket.on("disconnect", (reason) => {
-      console.log("❌ Socket disconnected:", reason);
-    });
-
     this.socket.on("connect_error", (error) => {
-      console.error("❌ Socket connection error:", error.message);
-      console.error("Full error:", error);
-    });
-
-    // Listen for any events (debugging)
-    this.socket.onAny((event, ...args) => {
-      console.log(`📡 Socket event received: ${event}`, args);
+      console.error("Socket connection error:", error.message);
     });
 
     return this.socket;
@@ -73,7 +50,6 @@ class SocketClient {
     if (this.socket) {
       this.socket.disconnect();
       this.socket = null;
-      console.log("Socket manually disconnected");
     }
   }
 

@@ -8,7 +8,7 @@ export default function CommonLayout({ children }: CommonLayoutProps) {
   return (
     <>
       {children}
-      <Toaster position="top-right" richColors />
+      <Toaster position="top-center" richColors duration={Infinity} closeButton />
     </>
   );
 }

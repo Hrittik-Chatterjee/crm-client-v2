@@ -13,7 +13,7 @@ createRoot(document.getElementById("root")!).render(
     <Provider store={store}>
       <ThemeProvider defaultTheme="light" storageKey="crm-theme">
         <RouterProvider router={router} />
-        <Toaster />
+        <Toaster position="top-center" richColors duration={Infinity} closeButton />
       </ThemeProvider>
     </Provider>
   </StrictMode>
