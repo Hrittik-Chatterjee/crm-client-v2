@@ -45,7 +45,7 @@ export default function DashboardLayout() {
             <BreadcrumbList>
               <BreadcrumbItem className="hidden md:block">
                 <BreadcrumbLink href={isOnAdminRoute ? "/admin/dashboard" : "/dashboard"}>
-                  CRM Client v2
+                  SR CREATIVE HUB CONSOLE
                 </BreadcrumbLink>
               </BreadcrumbItem>
             </BreadcrumbList>

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo, useCallback, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -8,17 +8,77 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
 import { Calendar } from "@/components/ui/calendar";
+import { RichTextEditor } from "@/components/RichTextEditor";
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
-import { useGetAllBusinessesQuery } from "@/redux/features/business/businessApi";
+import { useGetAllBusinessesQuery, useUpdateBusinessMutation } from "@/redux/features/business/businessApi";
 import {
   useCreateRegularContentMutation,
   ContentType,
+  useGetAllRegularContentsQuery,
+  useUpdateRegularContentMutation,
+  useDeleteRegularContentMutation,
+  RegularContent,
+  contentApi,
 } from "@/redux/features/content/contentApi";
+import { DataTable } from "@/components/data-table";
+import { ColumnDef } from "@tanstack/react-table";
+import { Badge } from "@/components/ui/badge";
+import { ViewContentDialog } from "@/components/ViewContentDialog";
+import { EditContentDialog } from "@/components/EditContentDialog";
+import { useSocket } from "@/hooks/useSocket";
+import { toast } from "sonner";
+import { useAppDispatch } from "@/redux/hook";
+import { Switch } from "@/components/ui/switch";
+
+// Content type for table display
+type Content = {
+  id: string;
+  businessId: string;
+  businessName: string;
+  date: string;
+  status: boolean;
+  contentType: string;
+  postMaterial?: string;
+  tags?: string;
+  videoMaterial?: string;
+  vision?: string;
+  posterMaterial?: string;
+  comments?: string;
+};
+
+// Status Switch Component
+function StatusSwitch({
+  initialStatus,
+  onStatusChange,
+}: {
+  initialStatus: boolean;
+  onStatusChange: (newStatus: boolean) => void;
+}) {
+  const [checked, setChecked] = useState<boolean>(initialStatus);
+
+  // Sync with prop changes (for socket updates)
+  useEffect(() => {
+    setChecked(initialStatus);
+  }, [initialStatus]);
+
+  const handleChange = (newChecked: boolean) => {
+    setChecked(newChecked);
+    onStatusChange(newChecked);
+  };
+
+  return (
+    <div className="flex justify-center">
+      <div className="relative inline-grid h-8 grid-cols-[1fr_1fr] items-center text-sm font-medium shadow-sm">
+        <Switch checked={checked} onCheckedChange={handleChange} />
+      </div>
+    </div>
+  );
+}
 
 // Form validation schema based on backend requirements
 const contentFormSchema = z.object({
@@ -35,23 +95,152 @@ const contentFormSchema = z.object({
 
 type ContentFormValues = z.infer<typeof contentFormSchema>;
 
+// Define columns for data table
+const createColumns = (
+  handleStatusChange: (id: string, newStatus: boolean) => void,
+  handleView: (content: Content) => void,
+  handleEdit: (content: Content) => void,
+  handleDelete: (id: string) => void
+): ColumnDef<Content>[] => [
+  {
+    accessorKey: "businessName",
+    header: () => <div className="text-center">Business Name</div>,
+    cell: ({ row }) => {
+      return <div className="text-center">{row.getValue("businessName")}</div>;
+    },
+  },
+  {
+    accessorKey: "date",
+    header: () => <div className="text-center">Date</div>,
+    cell: ({ row }) => {
+      return <div className="text-center">{row.getValue("date")}</div>;
+    },
+  },
+  {
+    accessorKey: "status",
+    header: () => <div className="text-center">Status</div>,
+    cell: ({ row }) => {
+      const status = row.getValue("status") as boolean;
+      return (
+        <div className="flex justify-center">
+          <Badge
+            variant={status ? "default" : "outline"}
+            className={
+              status
+                ? "bg-green-100 text-green-700 border-green-300 dark:bg-green-950/40 dark:text-green-400 dark:border-green-800"
+                : "bg-red-100 text-red-700 border-red-300 dark:bg-red-950/40 dark:text-red-400 dark:border-red-800"
+            }
+          >
+            {status ? "Done" : "Pending"}
+          </Badge>
+        </div>
+      );
+    },
+  },
+  {
+    accessorKey: "contentType",
+    header: () => <div className="text-center">Content Type</div>,
+    cell: ({ row }) => {
+      const contentType = row.getValue("contentType") as string;
+      const getContentTypeColor = () => {
+        switch (contentType.toLowerCase()) {
+          case "poster":
+            return "bg-blue-100 text-blue-700 border-blue-300 dark:bg-blue-950/40 dark:text-blue-400 dark:border-blue-800";
+          case "video":
+            return "bg-orange-100 text-orange-700 border-orange-300 dark:bg-orange-950/40 dark:text-orange-400 dark:border-orange-800";
+          case "both":
+            return "bg-purple-100 text-purple-700 border-purple-300 dark:bg-purple-950/40 dark:text-purple-400 dark:border-purple-800";
+          default:
+            return "bg-gray-100 text-gray-700 border-gray-300 dark:bg-gray-950/40 dark:text-gray-400 dark:border-gray-800";
+        }
+      };
+      return (
+        <div className="flex justify-center">
+          <Badge variant="outline" className={getContentTypeColor()}>
+            {contentType}
+          </Badge>
+        </div>
+      );
+    },
+  },
+  {
+    id: "changeStatus",
+    header: () => <div className="text-center">Change Status</div>,
+    cell: ({ row }) => {
+      const status = row.getValue("status") as boolean;
+      return (
+        <StatusSwitch
+          key={row.original.id}
+          initialStatus={status}
+          onStatusChange={(newStatus) =>
+            handleStatusChange(row.original.id, newStatus)
+          }
+        />
+      );
+    },
+  },
+  {
+    id: "action",
+    header: () => <div className="text-center">Action</div>,
+    cell: ({ row }) => {
+      return (
+        <div className="flex justify-center gap-2">
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => handleEdit(row.original)}
+            className="hover:bg-blue-50 hover:text-blue-600 hover:border-blue-600 dark:hover:bg-blue-950/40 dark:hover:text-blue-400 dark:hover:border-blue-600"
+          >
+            Edit
+          </Button>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => handleView(row.original)}
+            className="hover:bg-green-50 hover:text-green-600 hover:border-green-600 dark:hover:bg-green-950/40 dark:hover:text-green-400 dark:hover:border-green-600"
+          >
+            View
+          </Button>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => handleDelete(row.original.id)}
+            className="hover:bg-red-50 hover:text-red-600 hover:border-red-600 dark:hover:bg-red-950/40 dark:hover:text-red-400 dark:hover:border-red-600"
+          >
+            Delete
+          </Button>
+        </div>
+      );
+    },
+  },
+];
+
 export default function WriteContent() {
   const [date, setDate] = useState<Date>(new Date());
   const [contentType, setContentType] = useState<ContentType>(
     ContentType.POSTER
   );
+  const [viewContent, setViewContent] = useState<Content | null>(null);
+  const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
+  const [editContent, setEditContent] = useState<Content | null>(null);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
 
   // RTK Query hooks
+  const dispatch = useAppDispatch();
   const { data: businessesData, isLoading: isLoadingBusinesses } =
     useGetAllBusinessesQuery();
   const [createContent, { isLoading: isCreating }] =
     useCreateRegularContentMutation();
+  const [updateContent] = useUpdateRegularContentMutation();
+  const [deleteContent] = useDeleteRegularContentMutation();
+  const [updateBusiness] = useUpdateBusinessMutation();
 
   const {
     register,
     handleSubmit,
     formState: { errors },
     setValue,
+    watch,
     reset,
   } = useForm<ContentFormValues>({
     resolver: zodResolver(contentFormSchema),
@@ -60,6 +249,43 @@ export default function WriteContent() {
       date: new Date(),
     },
   });
+
+  const postMaterial = watch("postMaterial");
+  const selectedBusiness = watch("business");
+  const selectedDate = watch("date");
+
+  // Fetch contents filtered by date
+  const { data: contentsData, isLoading: isLoadingContents } =
+    useGetAllRegularContentsQuery({
+      date: selectedDate
+        ? format(selectedDate, "MM/dd/yyyy")
+        : format(new Date(), "MM/dd/yyyy"),
+    });
+
+  // Socket integration for real-time updates
+  const { on } = useSocket();
+
+  useEffect(() => {
+    // Listen for content updates via socket
+    on("contentUpdated", () => {
+      dispatch(contentApi.util.invalidateTags(["CONTENT"]));
+      toast.success("Content updated in real-time", { duration: Infinity });
+    });
+
+    return () => {
+      // Cleanup socket listeners
+    };
+  }, [on, dispatch]);
+
+  // Auto-populate tags when business is selected
+  useEffect(() => {
+    if (selectedBusiness && businessesData?.data) {
+      const business = businessesData.data.find(b => b._id === selectedBusiness);
+      if (business && business.tags) {
+        setValue("tags", business.tags);
+      }
+    }
+  }, [selectedBusiness, businessesData, setValue]);
 
   // Sync form state with local state when radio button changes
   const handleContentTypeChange = (newType: ContentType) => {
@@ -88,6 +314,13 @@ export default function WriteContent() {
       // Create content using RTK Query mutation
       await createContent(payload).unwrap();
 
+      // Update business tags with the latest tags from this content
+      // This updates even if tags are empty (to clear previous tags)
+      await updateBusiness({
+        id: data.business,
+        data: { tags: data.tags || "" }
+      }).unwrap();
+
       // Reset form after successful submission
       const today = new Date();
       reset({
@@ -104,10 +337,10 @@ export default function WriteContent() {
       setDate(today);
       setContentType(ContentType.POSTER);
 
-      alert("Content created successfully!");
+      toast.success("Content created successfully!", { duration: Infinity });
     } catch (error) {
       console.error("Error creating content:", error);
-      alert("Failed to create content. Please try again.");
+      toast.error("Failed to create content. Please try again.", { duration: Infinity });
     }
   };
 
@@ -120,13 +353,91 @@ export default function WriteContent() {
   // Get businesses list from API
   const businesses = businessesData?.data || [];
 
+  // Transform API data to table format and filter by selected business
+  const contents: Content[] = useMemo(
+    () =>
+      contentsData?.data
+        ?.map((content: RegularContent) => ({
+          id: content._id,
+          businessId:
+            typeof content.business === "string"
+              ? content.business
+              : content.business?._id || "",
+          businessName:
+            typeof content.business === "string"
+              ? businessesData?.data?.find((b) => b._id === content.business)
+                  ?.businessName || "Unknown"
+              : content.business?.businessName || "Unknown",
+          date: content.date,
+          status: content.status,
+          contentType: content.contentType,
+          postMaterial: content.postMaterial,
+          tags: content.tags,
+          videoMaterial: content.videoMaterial,
+          vision: content.vision,
+          posterMaterial: content.posterMaterial,
+          comments: content.comments,
+        }))
+        .filter((content: Content) =>
+          selectedBusiness ? content.businessId === selectedBusiness : false
+        ) || [],
+    [contentsData, businessesData, selectedBusiness]
+  );
+
+  // Handlers for table actions
+  const handleStatusChange = useCallback(
+    async (id: string, newStatus: boolean) => {
+      try {
+        await updateContent({ id, data: { status: newStatus } }).unwrap();
+        toast.success("Status updated successfully", { duration: Infinity });
+      } catch (error) {
+        console.error("Error updating status:", error);
+        toast.error("Failed to update status", { duration: Infinity });
+      }
+    },
+    [updateContent]
+  );
+
+  const handleView = (content: Content) => {
+    setViewContent(content);
+    setIsViewDialogOpen(true);
+  };
+
+  const handleEdit = (content: Content) => {
+    setEditContent(content);
+    setIsEditDialogOpen(true);
+  };
+
+  const handleDelete = useCallback(
+    async (id: string) => {
+      if (!window.confirm("Are you sure you want to delete this content?")) {
+        return;
+      }
+
+      try {
+        await deleteContent(id).unwrap();
+        toast.success("Content deleted successfully", { duration: Infinity });
+      } catch (error) {
+        console.error("Error deleting content:", error);
+        toast.error("Failed to delete content", { duration: Infinity });
+      }
+    },
+    [deleteContent]
+  );
+
+  const columns = useMemo(
+    () =>
+      createColumns(handleStatusChange, handleView, handleEdit, handleDelete),
+    [handleStatusChange, handleDelete]
+  );
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 mt-2">
       {/* Header */}
-      <div className="flex items-center justify-between bg-linear-to-r from-blue-50 to-purple-50 dark:from-blue-950/20 dark:to-purple-950/20 p-6 rounded-lg border">
+      <div className="flex items-center justify-between bg-linear-to-r from-cyan-50 to-teal-50 dark:from-cyan-950/20 dark:to-teal-950/20 p-6 rounded-lg border">
         <div>
-          <h2 className="text-3xl font-bold bg-linear-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent flex items-center gap-2">
-            <Sparkles className="h-8 w-8 text-blue-600" />
+          <h2 className="text-3xl font-bold bg-linear-to-r from-cyan-600 to-teal-600 bg-clip-text text-transparent flex items-center gap-2">
+            <Sparkles className="h-8 w-8 text-cyan-600" />
             Write Content
           </h2>
           <p className="text-sm text-muted-foreground mt-1">
@@ -287,12 +598,11 @@ export default function WriteContent() {
                 {/* Post Material */}
                 <div className="space-y-2">
                   <Label htmlFor="postMaterial">Social Media Caption</Label>
-                  <textarea
-                    id="postMaterial"
-                    {...register("postMaterial")}
-                    rows={4}
+                  <RichTextEditor
+                    value={postMaterial || ""}
+                    onChange={(value) => setValue("postMaterial", value)}
                     placeholder="Write your social media post content here..."
-                    className="flex min-h-20 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 resize-y"
+                    rows={4}
                   />
                 </div>
 
@@ -304,7 +614,7 @@ export default function WriteContent() {
                     {...register("tags")}
                     rows={4}
                     placeholder="#hashtag1 #hashtag2 @mention"
-                    className="flex min-h-20 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 resize-y"
+                    className="flex min-h-20 w-full rounded-md border border-input bg-background px-3 py-2 pb-12 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 resize-y"
                   />
                 </div>
 
@@ -399,6 +709,93 @@ export default function WriteContent() {
           </Button>
         </div>
       </form>
+
+      {/* Data Table Section */}
+      <div className="space-y-4">
+        {/* Section Header */}
+        <div className="flex items-center justify-between bg-linear-to-r from-indigo-50 to-blue-50 dark:from-indigo-950/20 dark:to-blue-950/20 p-4 rounded-lg border">
+          <div>
+            <h3 className="text-xl font-bold text-indigo-900 dark:text-indigo-100">
+              Existing Content for Selected Business
+            </h3>
+            <p className="text-sm text-muted-foreground mt-1">
+              {selectedBusiness
+                ? `Showing content for ${
+                    businesses.find((b) => b._id === selectedBusiness)
+                      ?.businessName || "selected business"
+                  } on ${
+                    selectedDate ? format(selectedDate, "PPP") : "selected date"
+                  }`
+                : "Select a business and date above to view existing content"}
+            </p>
+          </div>
+        </div>
+
+        {/* Table or Empty State */}
+        {!selectedBusiness || !selectedDate ? (
+          <Card className="p-12">
+            <div className="text-center space-y-4">
+              <div className="flex justify-center">
+                <div className="h-16 w-16 rounded-full bg-muted flex items-center justify-center">
+                  <Sparkles className="h-8 w-8 text-muted-foreground" />
+                </div>
+              </div>
+              <div>
+                <h3 className="text-lg font-semibold">No Business Selected</h3>
+                <p className="text-sm text-muted-foreground mt-2">
+                  Select a business and date from the form above to view
+                  existing content
+                </p>
+              </div>
+            </div>
+          </Card>
+        ) : isLoadingContents ? (
+          <Card className="p-12">
+            <div className="text-center space-y-4">
+              <div className="flex justify-center">
+                <div className="h-8 w-8 animate-spin rounded-full border-2 border-blue-600 border-t-transparent" />
+              </div>
+              <p className="text-sm text-muted-foreground">
+                Loading contents...
+              </p>
+            </div>
+          </Card>
+        ) : contents.length === 0 ? (
+          <Card className="p-12">
+            <div className="text-center space-y-4">
+              <div className="flex justify-center">
+                <div className="h-16 w-16 rounded-full bg-muted flex items-center justify-center">
+                  <Sparkles className="h-8 w-8 text-muted-foreground" />
+                </div>
+              </div>
+              <div>
+                <h3 className="text-lg font-semibold">No Content Found</h3>
+                <p className="text-sm text-muted-foreground mt-2">
+                  No content exists for this business on the selected date
+                </p>
+              </div>
+            </div>
+          </Card>
+        ) : (
+          <Card>
+            <DataTable columns={columns} data={contents} />
+          </Card>
+        )}
+      </div>
+
+      {/* View Content Dialog */}
+      <ViewContentDialog
+        content={viewContent}
+        open={isViewDialogOpen}
+        onOpenChange={setIsViewDialogOpen}
+      />
+
+      {/* Edit Content Dialog */}
+      <EditContentDialog
+        content={editContent}
+        open={isEditDialogOpen}
+        onOpenChange={setIsEditDialogOpen}
+      />
     </div>
   );
 }

@@ -1,7 +1,4 @@
-import {
-  Home,
-  Settings,
-} from "lucide-react";
+import { Home, Settings } from "lucide-react";
 import { Link, useLocation } from "react-router";
 import {
   Sidebar,
@@ -13,6 +10,7 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
+  useSidebar,
 } from "@/components/ui/sidebar";
 import { useGetCurrentUserQuery } from "@/redux/features/auth/authApi";
 import { getSidebarItems } from "@/utils/getSidebarItems";
@@ -20,23 +18,31 @@ import { getSidebarItems } from "@/utils/getSidebarItems";
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const { data: userData } = useGetCurrentUserQuery();
   const location = useLocation();
+  const { state } = useSidebar();
 
-  const sidebarSections = getSidebarItems(userData?.data?.roles);
+  // Determine if user is on admin route
+  const isOnAdminRoute = location.pathname.startsWith('/admin');
+  const userRoles = userData?.data?.roles;
+  const sidebarSections = getSidebarItems(isOnAdminRoute, userRoles);
 
   return (
     <Sidebar collapsible="icon" {...props}>
       <SidebarHeader>
         <SidebarMenu>
           <SidebarMenuItem>
-            <SidebarMenuButton size="lg" asChild>
-              <Link to="/dashboard">
-                <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-sidebar-primary text-sidebar-primary-foreground">
-                  <Home className="size-4" />
-                </div>
-                <div className="grid flex-1 text-left text-sm leading-tight">
-                  <span className="truncate font-semibold">CRM Client v2</span>
-                  <span className="truncate text-xs">Dashboard</span>
-                </div>
+            <SidebarMenuButton size="lg" asChild tooltip="Dashboard">
+              <Link to={isOnAdminRoute ? "/admin/dashboard" : "/dashboard"}>
+                {state === "collapsed" ? (
+                  <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-sidebar-primary text-sidebar-primary-foreground">
+                    <Home className="size-4" />
+                  </div>
+                ) : (
+                  <img
+                    src="/assets/logo1.svg"
+                    alt="SR Creative Hub"
+                    className="h-8 w-auto"
+                  />
+                )}
               </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
@@ -49,10 +55,16 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
             <SidebarMenu>
               {section.items.map((item) => {
                 const isActive = location.pathname === item.url;
+                const IconComponent = item.icon;
                 return (
                   <SidebarMenuItem key={item.title}>
-                    <SidebarMenuButton asChild isActive={isActive} tooltip={item.title}>
+                    <SidebarMenuButton
+                      asChild
+                      isActive={isActive}
+                      tooltip={item.title}
+                    >
                       <Link to={item.url}>
+                        {IconComponent && <IconComponent className="text-cyan-500" />}
                         <span>{item.title}</span>
                       </Link>
                     </SidebarMenuButton>
@@ -66,7 +78,11 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
           <SidebarGroupLabel>Other</SidebarGroupLabel>
           <SidebarMenu>
             <SidebarMenuItem>
-              <SidebarMenuButton asChild isActive={location.pathname === "/dashboard/settings"} tooltip="Settings">
+              <SidebarMenuButton
+                asChild
+                isActive={location.pathname === "/dashboard/settings"}
+                tooltip="Settings"
+              >
                 <Link to="/dashboard/settings">
                   <Settings />
                   <span>Settings</span>

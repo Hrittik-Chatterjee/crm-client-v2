@@ -3,7 +3,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useState, useEffect } from "react";
 import { format, parse } from "date-fns";
-import { Calendar as CalendarIcon } from "lucide-react";
+import { Calendar as CalendarIcon, Eye, EyeOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -15,11 +15,23 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { CountryCombobox } from "@/components/ui/CountryCombobox";
+import { BusinessTypeCombobox } from "@/components/ui/BusinessTypeCombobox";
+import { UserMultiSelect } from "@/components/ui/UserMultiSelect";
+import {
   useGetBusinessByIdQuery,
   useUpdateBusinessMutation,
 } from "@/redux/features/business/businessApi";
 import { useGetAllUsersQuery } from "@/redux/features/user/userApi";
 import { useNavigate, useParams } from "react-router";
+import { PACKAGES } from "@/constants/business";
+import { toast } from "sonner";
 
 const businessSchema = z.object({
   businessName: z.string().min(1, "Business name is required"),
@@ -62,6 +74,14 @@ export default function EditBusiness() {
   const [selectedCW, setSelectedCW] = useState<string[]>([]);
   const [selectedCD, setSelectedCD] = useState<string[]>([]);
   const [selectedVE, setSelectedVE] = useState<string[]>([]);
+  const [selectedCountry, setSelectedCountry] = useState<string>("");
+  const [selectedBusinessType, setSelectedBusinessType] = useState<string>("");
+  const [showPasswords, setShowPasswords] = useState<Record<string, boolean>>({
+    facebook: false,
+    instagram: false,
+    whatsApp: false,
+    youtube: false,
+  });
 
   const {
     register,
@@ -74,7 +94,7 @@ export default function EditBusiness() {
 
   const { data: businessData, isLoading: isLoadingBusiness } =
     useGetBusinessByIdQuery(id!);
-  const { data: usersData, isLoading: isLoadingUsers } = useGetAllUsersQuery();
+  const { data: usersData, isLoading: isLoadingUsers } = useGetAllUsersQuery({ limit: 1000 });
   const [updateBusiness, { isLoading: isUpdating }] =
     useUpdateBusinessMutation();
 
@@ -88,8 +108,6 @@ export default function EditBusiness() {
   const veUsers =
     usersData?.data?.filter((user) => user.roles.includes("videoeditor")) || [];
 
-  console.log(usersData);
-
   // Populate form with existing business data
   useEffect(() => {
     if (businessData?.data) {
@@ -98,7 +116,9 @@ export default function EditBusiness() {
       // Set basic fields
       setValue("businessName", business.businessName);
       setValue("typeOfBusiness", business.typeOfBusiness);
+      setSelectedBusinessType(business.typeOfBusiness);
       setValue("country", business.country);
+      setSelectedCountry(business.country);
       setValue("package", business.package);
       setValue("contactDetails", business.contactDetails || "");
       setValue("email", business.email || "");
@@ -126,6 +146,10 @@ export default function EditBusiness() {
           business.socialMediaLinks.facebook?.username || ""
         );
         setValue(
+          "facebookPassword",
+          business.socialMediaLinks.facebook?.password || ""
+        );
+        setValue(
           "instagramUrl",
           business.socialMediaLinks.instagram?.url || ""
         );
@@ -133,15 +157,27 @@ export default function EditBusiness() {
           "instagramUsername",
           business.socialMediaLinks.instagram?.username || ""
         );
+        setValue(
+          "instagramPassword",
+          business.socialMediaLinks.instagram?.password || ""
+        );
         setValue("whatsAppUrl", business.socialMediaLinks.whatsApp?.url || "");
         setValue(
           "whatsAppUsername",
           business.socialMediaLinks.whatsApp?.username || ""
         );
+        setValue(
+          "whatsAppPassword",
+          business.socialMediaLinks.whatsApp?.password || ""
+        );
         setValue("youtubeUrl", business.socialMediaLinks.youtube?.url || "");
         setValue(
           "youtubeUsername",
           business.socialMediaLinks.youtube?.username || ""
+        );
+        setValue(
+          "youtubePassword",
+          business.socialMediaLinks.youtube?.password || ""
         );
         setValue("website", business.socialMediaLinks.website || "");
         setValue("tripAdvisor", business.socialMediaLinks.tripAdvisor || "");
@@ -205,11 +241,11 @@ export default function EditBusiness() {
 
       await updateBusiness({ id: id!, data: payload }).unwrap();
 
-      alert("Business updated successfully!");
+      toast.success("Business updated successfully!", { duration: 1000 });
       navigate("/admin/businesses");
     } catch (error) {
       console.error("Error updating business:", error);
-      alert("Failed to update business. Please try again.");
+      toast.error("Failed to update business. Please try again.", { duration: 1000 });
     }
   };
 
@@ -223,6 +259,13 @@ export default function EditBusiness() {
     } else {
       setSelected([...selected, userId]);
     }
+  };
+
+  const togglePasswordVisibility = (platform: string) => {
+    setShowPasswords((prev) => ({
+      ...prev,
+      [platform]: !prev[platform],
+    }));
   };
 
   if (isLoadingBusiness) {
@@ -273,10 +316,13 @@ export default function EditBusiness() {
               <Label htmlFor="typeOfBusiness">
                 Type of Business <span className="text-red-500">*</span>
               </Label>
-              <Input
-                id="typeOfBusiness"
-                {...register("typeOfBusiness")}
-                placeholder="e.g., Restaurant, Hotel"
+              <BusinessTypeCombobox
+                value={selectedBusinessType}
+                onValueChange={(value) => {
+                  setValue("typeOfBusiness", value);
+                  setSelectedBusinessType(value);
+                }}
+                placeholder="Select business type"
               />
               {errors.typeOfBusiness && (
                 <p className="text-red-500 text-sm mt-1">
@@ -289,10 +335,13 @@ export default function EditBusiness() {
               <Label htmlFor="country">
                 Country <span className="text-red-500">*</span>
               </Label>
-              <Input
-                id="country"
-                {...register("country")}
-                placeholder="Enter country"
+              <CountryCombobox
+                value={selectedCountry}
+                onValueChange={(value) => {
+                  setValue("country", value);
+                  setSelectedCountry(value);
+                }}
+                placeholder="Select a country"
               />
               {errors.country && (
                 <p className="text-red-500 text-sm mt-1">
@@ -305,11 +354,21 @@ export default function EditBusiness() {
               <Label htmlFor="package">
                 Package <span className="text-red-500">*</span>
               </Label>
-              <Input
-                id="package"
-                {...register("package")}
-                placeholder="Enter package"
-              />
+              <Select
+                onValueChange={(value) => setValue("package", value)}
+                defaultValue={businessData?.data?.package}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select a package" />
+                </SelectTrigger>
+                <SelectContent>
+                  {PACKAGES.map((pkg) => (
+                    <SelectItem key={pkg} value={pkg}>
+                      {pkg}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
               {errors.package && (
                 <p className="text-red-500 text-sm mt-1">
                   {errors.package.message}
@@ -418,12 +477,28 @@ export default function EditBusiness() {
               </div>
               <div>
                 <Label htmlFor="facebookPassword">Password</Label>
-                <Input
-                  id="facebookPassword"
-                  type="password"
-                  {...register("facebookPassword")}
-                  placeholder="Password (leave empty to keep current)"
-                />
+                <div className="relative">
+                  <Input
+                    id="facebookPassword"
+                    type={showPasswords.facebook ? "text" : "password"}
+                    {...register("facebookPassword")}
+                    placeholder="Password (leave empty to keep current)"
+                    className="pr-10"
+                  />
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => togglePasswordVisibility("facebook")}
+                    className="absolute right-0 top-0 h-full px-3 hover:bg-transparent"
+                  >
+                    {showPasswords.facebook ? (
+                      <EyeOff className="h-4 w-4 text-muted-foreground" />
+                    ) : (
+                      <Eye className="h-4 w-4 text-muted-foreground" />
+                    )}
+                  </Button>
+                </div>
               </div>
             </div>
           </div>
@@ -450,12 +525,28 @@ export default function EditBusiness() {
               </div>
               <div>
                 <Label htmlFor="instagramPassword">Password</Label>
-                <Input
-                  id="instagramPassword"
-                  type="password"
-                  {...register("instagramPassword")}
-                  placeholder="Password (leave empty to keep current)"
-                />
+                <div className="relative">
+                  <Input
+                    id="instagramPassword"
+                    type={showPasswords.instagram ? "text" : "password"}
+                    {...register("instagramPassword")}
+                    placeholder="Password (leave empty to keep current)"
+                    className="pr-10"
+                  />
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => togglePasswordVisibility("instagram")}
+                    className="absolute right-0 top-0 h-full px-3 hover:bg-transparent"
+                  >
+                    {showPasswords.instagram ? (
+                      <EyeOff className="h-4 w-4 text-muted-foreground" />
+                    ) : (
+                      <Eye className="h-4 w-4 text-muted-foreground" />
+                    )}
+                  </Button>
+                </div>
               </div>
             </div>
           </div>
@@ -482,12 +573,28 @@ export default function EditBusiness() {
               </div>
               <div>
                 <Label htmlFor="whatsAppPassword">Password</Label>
-                <Input
-                  id="whatsAppPassword"
-                  type="password"
-                  {...register("whatsAppPassword")}
-                  placeholder="Password (leave empty to keep current)"
-                />
+                <div className="relative">
+                  <Input
+                    id="whatsAppPassword"
+                    type={showPasswords.whatsApp ? "text" : "password"}
+                    {...register("whatsAppPassword")}
+                    placeholder="Password (leave empty to keep current)"
+                    className="pr-10"
+                  />
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => togglePasswordVisibility("whatsApp")}
+                    className="absolute right-0 top-0 h-full px-3 hover:bg-transparent"
+                  >
+                    {showPasswords.whatsApp ? (
+                      <EyeOff className="h-4 w-4 text-muted-foreground" />
+                    ) : (
+                      <Eye className="h-4 w-4 text-muted-foreground" />
+                    )}
+                  </Button>
+                </div>
               </div>
             </div>
           </div>
@@ -514,12 +621,28 @@ export default function EditBusiness() {
               </div>
               <div>
                 <Label htmlFor="youtubePassword">Password</Label>
-                <Input
-                  id="youtubePassword"
-                  type="password"
-                  {...register("youtubePassword")}
-                  placeholder="Password (leave empty to keep current)"
-                />
+                <div className="relative">
+                  <Input
+                    id="youtubePassword"
+                    type={showPasswords.youtube ? "text" : "password"}
+                    {...register("youtubePassword")}
+                    placeholder="Password (leave empty to keep current)"
+                    className="pr-10"
+                  />
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => togglePasswordVisibility("youtube")}
+                    className="absolute right-0 top-0 h-full px-3 hover:bg-transparent"
+                  >
+                    {showPasswords.youtube ? (
+                      <EyeOff className="h-4 w-4 text-muted-foreground" />
+                    ) : (
+                      <Eye className="h-4 w-4 text-muted-foreground" />
+                    )}
+                  </Button>
+                </div>
               </div>
             </div>
           </div>
@@ -558,103 +681,37 @@ export default function EditBusiness() {
           <h2 className="text-xl font-semibold mb-4">Assignments</h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {/* Content Writers */}
-            <div>
-              <Label>Assigned Content Writers (CW)</Label>
-              <div className="border rounded p-3 max-h-40 overflow-y-auto">
-                {isLoadingUsers ? (
-                  <p className="text-sm text-muted-foreground">
-                    Loading users...
-                  </p>
-                ) : cwUsers.length === 0 ? (
-                  <p className="text-sm text-muted-foreground">
-                    No CW users found
-                  </p>
-                ) : (
-                  cwUsers.map((user) => (
-                    <label
-                      key={user._id}
-                      className="flex items-center gap-2 mb-2 cursor-pointer"
-                    >
-                      <input
-                        type="checkbox"
-                        checked={selectedCW.includes(user._id)}
-                        onChange={() =>
-                          toggleSelection(user._id, selectedCW, setSelectedCW)
-                        }
-                        className="rounded"
-                      />
-                      <span className="text-sm">{user.username}</span>
-                    </label>
-                  ))
-                )}
-              </div>
-            </div>
+            <UserMultiSelect
+              label="Assigned Content Writers (CW)"
+              users={cwUsers}
+              selectedUsers={selectedCW}
+              onToggle={(userId) =>
+                toggleSelection(userId, selectedCW, setSelectedCW)
+              }
+              isLoading={isLoadingUsers}
+            />
 
             {/* Content Designers */}
-            <div>
-              <Label>Assigned Content Designers (CD)</Label>
-              <div className="border rounded p-3 max-h-40 overflow-y-auto">
-                {isLoadingUsers ? (
-                  <p className="text-sm text-muted-foreground">
-                    Loading users...
-                  </p>
-                ) : cdUsers.length === 0 ? (
-                  <p className="text-sm text-muted-foreground">
-                    No CD users found
-                  </p>
-                ) : (
-                  cdUsers.map((user) => (
-                    <label
-                      key={user._id}
-                      className="flex items-center gap-2 mb-2 cursor-pointer"
-                    >
-                      <input
-                        type="checkbox"
-                        checked={selectedCD.includes(user._id)}
-                        onChange={() =>
-                          toggleSelection(user._id, selectedCD, setSelectedCD)
-                        }
-                        className="rounded"
-                      />
-                      <span className="text-sm">{user.username}</span>
-                    </label>
-                  ))
-                )}
-              </div>
-            </div>
+            <UserMultiSelect
+              label="Assigned Content Designers (CD)"
+              users={cdUsers}
+              selectedUsers={selectedCD}
+              onToggle={(userId) =>
+                toggleSelection(userId, selectedCD, setSelectedCD)
+              }
+              isLoading={isLoadingUsers}
+            />
 
             {/* Video Editors */}
-            <div>
-              <Label>Assigned Video Editors (VE)</Label>
-              <div className="border rounded p-3 max-h-40 overflow-y-auto">
-                {isLoadingUsers ? (
-                  <p className="text-sm text-muted-foreground">
-                    Loading users...
-                  </p>
-                ) : veUsers.length === 0 ? (
-                  <p className="text-sm text-muted-foreground">
-                    No VE users found
-                  </p>
-                ) : (
-                  veUsers.map((user) => (
-                    <label
-                      key={user._id}
-                      className="flex items-center gap-2 mb-2 cursor-pointer"
-                    >
-                      <input
-                        type="checkbox"
-                        checked={selectedVE.includes(user._id)}
-                        onChange={() =>
-                          toggleSelection(user._id, selectedVE, setSelectedVE)
-                        }
-                        className="rounded"
-                      />
-                      <span className="text-sm">{user.username}</span>
-                    </label>
-                  ))
-                )}
-              </div>
-            </div>
+            <UserMultiSelect
+              label="Assigned Video Editors (VE)"
+              users={veUsers}
+              selectedUsers={selectedVE}
+              onToggle={(userId) =>
+                toggleSelection(userId, selectedVE, setSelectedVE)
+              }
+              isLoading={isLoadingUsers}
+            />
           </div>
         </div>
 

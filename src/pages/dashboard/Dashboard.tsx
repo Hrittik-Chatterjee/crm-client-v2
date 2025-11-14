@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { useState, useMemo, useCallback, useEffect } from "react";
 import { Calendar } from "@/components/ui/calendar";
 import { ViewContentDialog } from "@/components/ViewContentDialog";
+import { EditContentDialog } from "@/components/EditContentDialog";
 import { useSocket } from "@/hooks/useSocket";
 import { toast } from "sonner";
 import {
@@ -28,7 +29,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { format } from "date-fns";
 import { Switch } from "@/components/ui/switch";
-import { Filter, Check, ChevronDown } from "lucide-react";
+import { Filter, Check, ChevronDown, FileText } from "lucide-react";
 import { useGetAllBusinessesQuery } from "@/redux/features/business/businessApi";
 import {
   useGetAllRegularContentsQuery,
@@ -42,6 +43,7 @@ import { useAppDispatch } from "@/redux/hook";
 // Content type for table display
 type Content = {
   id: string;
+  businessId: string;
   businessName: string;
   date: string;
   status: boolean;
@@ -52,6 +54,16 @@ type Content = {
   vision?: string;
   posterMaterial?: string;
   comments?: string;
+};
+
+// Socket event data type
+type SocketContentEvent = {
+  type?: string;
+  business?: string;
+  message?: string;
+  addedBy?: string;
+  updatedBy?: string;
+  deletedBy?: string;
 };
 
 console.log("from dashboard");
@@ -68,6 +80,11 @@ function StatusSwitch({
   onStatusChange: (newStatus: boolean) => void;
 }) {
   const [checked, setChecked] = useState<boolean>(initialStatus);
+
+  // Sync with prop changes (for socket updates)
+  useEffect(() => {
+    setChecked(initialStatus);
+  }, [initialStatus]);
 
   const handleChange = (newChecked: boolean) => {
     setChecked(newChecked);
@@ -102,6 +119,7 @@ function StatusSwitch({
 const createColumns = (
   handleStatusChange: (id: string, newStatus: boolean) => void,
   handleView: (content: Content) => void,
+  handleEdit: (content: Content) => void,
   handleDelete: (id: string) => void
 ): ColumnDef<Content>[] => [
   {
@@ -123,12 +141,21 @@ const createColumns = (
     header: () => <div className="text-center">Content Type</div>,
     cell: ({ row }) => {
       const contentType = row.getValue("contentType") as string;
+      const getContentTypeColor = () => {
+        switch (contentType.toLowerCase()) {
+          case "poster":
+            return "min-w-20 inline-flex justify-center bg-blue-100 text-blue-700 hover:bg-blue-200 border-blue-300 dark:bg-blue-950/40 dark:text-blue-400 dark:hover:bg-blue-950/60 dark:border-blue-800";
+          case "video":
+            return "min-w-20 inline-flex justify-center bg-orange-100 text-orange-700 hover:bg-orange-200 border-orange-300 dark:bg-orange-950/40 dark:text-orange-400 dark:hover:bg-orange-950/60 dark:border-orange-800";
+          case "both":
+            return "min-w-20 inline-flex justify-center bg-purple-100 text-purple-700 hover:bg-purple-200 border-purple-300 dark:bg-purple-950/40 dark:text-purple-400 dark:hover:bg-purple-950/60 dark:border-purple-800";
+          default:
+            return "min-w-20 inline-flex justify-center bg-gray-100 text-gray-700 hover:bg-gray-200 border-gray-300 dark:bg-gray-950/40 dark:text-gray-400 dark:hover:bg-gray-950/60 dark:border-gray-800";
+        }
+      };
       return (
         <div className="text-center">
-          <Badge
-            variant="outline"
-            className="min-w-20 inline-flex justify-center bg-purple-100 text-purple-700 hover:bg-purple-200 border-purple-300 dark:bg-purple-950/40 dark:text-purple-400 dark:hover:bg-purple-950/60 dark:border-purple-800"
-          >
+          <Badge variant="outline" className={getContentTypeColor()}>
             {contentType.toUpperCase()}
           </Badge>
         </div>
@@ -163,6 +190,7 @@ const createColumns = (
       const status = row.getValue("status") as boolean;
       return (
         <StatusSwitch
+          key={row.original.id}
           initialStatus={status}
           onStatusChange={(newStatus) =>
             handleStatusChange(row.original.id, newStatus)
@@ -180,6 +208,7 @@ const createColumns = (
           <Button
             size="sm"
             variant="outline"
+            onClick={() => handleEdit(row.original)}
             className="hover:bg-blue-50 hover:text-blue-600 hover:border-blue-600 dark:hover:bg-blue-950/40 dark:hover:text-blue-400 dark:hover:border-blue-600"
           >
             Edit
@@ -214,6 +243,8 @@ export default function Dashboard() {
   const [isBusinessSheetOpen, setIsBusinessSheetOpen] = useState(false);
   const [viewContent, setViewContent] = useState<Content | null>(null);
   const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
+  const [editContent, setEditContent] = useState<Content | null>(null);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
 
   // RTK Query hooks - Use backend date filtering for better performance with large datasets
   const dispatch = useAppDispatch();
@@ -231,48 +262,54 @@ export default function Dashboard() {
 
   useEffect(() => {
     // Listen for new content notifications
-    const cleanupNew = on?.("new:content", (data: any) => {
+    const cleanupNew = on?.("new:content", (data: SocketContentEvent) => {
       console.log("📩 New content received:", data);
 
-      // Show toast notification
-      toast.success(`New ${data.type} content assigned to you!`, {
-        description: `${data.business} - ${data.message}`,
-      });
+      // Show toast notification with creator info
+      const contentTypeLabel =
+        data.type === "poster"
+          ? "Poster"
+          : data.type === "video"
+          ? "Video"
+          : "Content";
+      toast.success(
+        `New ${contentTypeLabel} content added by ${data.addedBy || "someone"}`,
+        {
+          description: `${data.business} - ${data.message}`,
+          duration: Infinity, // Stay until manually closed
+        }
+      );
 
       // Invalidate the content cache to refetch data
-      dispatch(
-        contentApi.util.invalidateTags([{ type: "CONTENT" }])
-      );
+      dispatch(contentApi.util.invalidateTags([{ type: "CONTENT" }]));
     });
 
     // Listen for content update notifications
-    const cleanupUpdate = on?.("update:content", (data: any) => {
+    const cleanupUpdate = on?.("update:content", (data: SocketContentEvent) => {
       console.log("🔄 Content updated:", data);
 
-      // Show toast notification
-      toast.info(`Content has been updated!`, {
+      // Show toast notification with who updated it
+      toast.info(`Content updated by ${data.updatedBy || "someone"}`, {
         description: `${data.business} - ${data.message}`,
+        duration: Infinity, // Stay until manually closed
       });
 
       // Invalidate the content cache to refetch data
-      dispatch(
-        contentApi.util.invalidateTags([{ type: "CONTENT" }])
-      );
+      dispatch(contentApi.util.invalidateTags([{ type: "CONTENT" }]));
     });
 
     // Listen for content delete notifications
-    const cleanupDelete = on?.("delete:content", (data: any) => {
+    const cleanupDelete = on?.("delete:content", (data: SocketContentEvent) => {
       console.log("🗑️ Content deleted:", data);
 
-      // Show toast notification
-      toast.error(`Content has been deleted!`, {
+      // Show toast notification with who deleted it
+      toast.error(`Content deleted by ${data.deletedBy || "someone"}`, {
         description: `${data.business} - ${data.message}`,
+        duration: Infinity, // Stay until manually closed
       });
 
       // Invalidate the content cache to refetch data
-      dispatch(
-        contentApi.util.invalidateTags([{ type: "CONTENT" }])
-      );
+      dispatch(contentApi.util.invalidateTags([{ type: "CONTENT" }]));
     });
 
     return () => {
@@ -287,6 +324,10 @@ export default function Dashboard() {
     () =>
       contentsData?.data?.map((content: RegularContent) => ({
         id: content._id,
+        businessId:
+          typeof content.business === "string"
+            ? content.business
+            : content.business?._id || "",
         businessName:
           typeof content.business === "string"
             ? businessesData?.data?.find((b) => b._id === content.business)
@@ -322,9 +363,10 @@ export default function Dashboard() {
           id,
           data: { status: newStatus },
         }).unwrap();
+        toast.success("Status updated successfully", { duration: Infinity });
       } catch (error) {
         console.error("Failed to update status:", error);
-        alert("Failed to update status. Please try again.");
+        toast.error("Failed to update status. Please try again.", { duration: Infinity });
       }
     },
     [updateContent]
@@ -339,10 +381,10 @@ export default function Dashboard() {
 
       try {
         await deleteContent(id).unwrap();
-        toast.success("Content deleted successfully!");
+        toast.success("Content deleted successfully!", { duration: Infinity });
       } catch (error) {
         console.error("Failed to delete content:", error);
-        toast.error("Failed to delete content. Please try again.");
+        toast.error("Failed to delete content. Please try again.", { duration: Infinity });
       }
     },
     [deleteContent]
@@ -362,6 +404,11 @@ export default function Dashboard() {
     setIsViewDialogOpen(true);
   };
 
+  const handleEdit = (content: Content) => {
+    setEditContent(content);
+    setIsEditDialogOpen(true);
+  };
+
   // Filter contents by business and status (date is filtered by backend)
   const filteredContents = useMemo(() => {
     let filtered = contents;
@@ -378,9 +425,10 @@ export default function Dashboard() {
       const statusBool = selectedStatus === "Done";
       filtered = filtered.filter((content) => {
         // Ensure status is compared as boolean, handle both boolean and string types
-        const contentStatus = typeof content.status === 'string'
-          ? content.status === 'true'
-          : Boolean(content.status);
+        const contentStatus =
+          typeof content.status === "string"
+            ? content.status === "true"
+            : Boolean(content.status);
         return contentStatus === statusBool;
       });
     }
@@ -389,7 +437,8 @@ export default function Dashboard() {
   }, [contents, selectedBusiness, selectedStatus]);
 
   const columns = useMemo(
-    () => createColumns(handleStatusChange, handleView, handleDelete),
+    () =>
+      createColumns(handleStatusChange, handleView, handleEdit, handleDelete),
     [handleStatusChange, handleDelete]
   );
 
@@ -406,10 +455,11 @@ export default function Dashboard() {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between bg-linear-to-r from-blue-50 to-purple-50 dark:from-blue-950/20 dark:to-purple-950/20 p-6 rounded-lg border">
+    <div className="space-y-6 mt-2">
+      <div className="flex items-center justify-between bg-linear-to-r from-cyan-50 to-teal-50 dark:from-cyan-950/20 dark:to-teal-950/20 p-6 rounded-lg border">
         <div>
-          <h2 className="text-3xl font-bold bg-linear-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent flex items-center gap-2">
+          <h2 className="text-3xl font-bold bg-linear-to-r from-cyan-600 to-teal-600 bg-clip-text text-transparent flex items-center gap-2">
+            <FileText className="h-8 w-8 text-cyan-600" />
             Content
           </h2>
           <p className="text-sm text-muted-foreground mt-1">
@@ -557,6 +607,13 @@ export default function Dashboard() {
         content={viewContent}
         open={isViewDialogOpen}
         onOpenChange={setIsViewDialogOpen}
+      />
+
+      {/* Edit Content Dialog */}
+      <EditContentDialog
+        content={editContent}
+        open={isEditDialogOpen}
+        onOpenChange={setIsEditDialogOpen}
       />
     </div>
   );

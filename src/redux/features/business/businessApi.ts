@@ -49,6 +49,11 @@ export interface BusinessesResponse {
   success: boolean;
   message: string;
   data: Business[];
+  meta?: {
+    page: number;
+    limit: number;
+    total: number;
+  };
 }
 
 export interface BusinessResponse {
@@ -57,13 +62,31 @@ export interface BusinessResponse {
   data: Business;
 }
 
+export interface BusinessQueryParams {
+  page?: number;
+  limit?: number;
+  sortBy?: string;
+  sortOrder?: "asc" | "desc";
+  search?: string;
+}
+
 export const businessApi = baseApi.injectEndpoints({
   endpoints: (builder) => ({
-    getAllBusinesses: builder.query<BusinessesResponse, void>({
-      query: () => ({
-        url: "/businesses",
-        method: "GET",
-      }),
+    getAllBusinesses: builder.query<BusinessesResponse, BusinessQueryParams | void>({
+      query: (params) => {
+        const queryParams = new URLSearchParams();
+        if (params) {
+          if (params.page) queryParams.append("page", params.page.toString());
+          if (params.limit) queryParams.append("limit", params.limit.toString());
+          if (params.sortBy) queryParams.append("sortBy", params.sortBy);
+          if (params.sortOrder) queryParams.append("sortOrder", params.sortOrder);
+          if (params.search) queryParams.append("search", params.search);
+        }
+        return {
+          url: `/businesses${queryParams.toString() ? `?${queryParams.toString()}` : ""}`,
+          method: "GET",
+        };
+      },
       providesTags: ["BUSINESSES"],
     }),
     getBusinessById: builder.query<BusinessResponse, string>({

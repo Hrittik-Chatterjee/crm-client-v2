@@ -5,6 +5,7 @@ import Login from "@/pages/Login";
 import Unauthorized from "@/pages/Unauthorized";
 import NotFound from "@/pages/NotFound";
 import EditBusiness from "@/pages/admin/EditBusiness";
+import EditUser from "@/pages/admin/EditUser";
 import { withAuth } from "@/utils/withAuth";
 import { role } from "@/constants/role";
 import { generateRoutes } from "@/utils/generateRoutes";
@@ -41,8 +42,9 @@ export const router = createBrowserRouter([
     children: [
       { index: true, element: <Navigate to="/admin/dashboard" /> },
       ...generateRoutes(adminSidebarItems),
-      // Edit business needs dynamic route parameter
+      // Dynamic route parameters
       { path: "edit-business/:id", Component: EditBusiness },
+      { path: "edit-user/:id", Component: EditUser },
     ],
   },
   {

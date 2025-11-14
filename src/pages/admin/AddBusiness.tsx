@@ -14,6 +14,16 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { CountryCombobox } from "@/components/ui/CountryCombobox";
+import { BusinessTypeCombobox } from "@/components/ui/BusinessTypeCombobox";
+import { UserMultiSelect } from "@/components/ui/UserMultiSelect";
 
 import { useCreateBusinessMutation } from "@/redux/features/business/businessApi";
 import { useGetAllUsersQuery } from "@/redux/features/user/userApi";
@@ -21,6 +31,7 @@ import { useNavigate } from "react-router";
 import { role } from "@/constants/role";
 import { SocialMediaInput } from "@/components/ui/SocialMediaInput";
 import { toast } from "sonner";
+import { PACKAGES } from "@/constants/business";
 
 const businessSchema = z.object({
   businessName: z.string().min(1, "Business name is required"),
@@ -73,7 +84,7 @@ export default function AddBusiness() {
     resolver: zodResolver(businessSchema),
   });
 
-  const { data: usersData, isLoading: isLoadingUsers } = useGetAllUsersQuery();
+  const { data: usersData, isLoading: isLoadingUsers } = useGetAllUsersQuery({ limit: 1000 });
   const [createBusiness, { isLoading: isCreating }] =
     useCreateBusinessMutation();
 
@@ -143,7 +154,7 @@ export default function AddBusiness() {
 
       await createBusiness(payload).unwrap();
 
-      toast.success("Business created successfully!");
+      toast.success("Business created successfully!", { duration: 1000 });
       reset();
       setDate(undefined);
       setSelectedCW([]);
@@ -152,7 +163,7 @@ export default function AddBusiness() {
       navigate("/admin/businesses");
     } catch (error) {
       console.error("Error creating business:", error);
-      toast.error("Failed to create business. Please try again.");
+      toast.error("Failed to create business. Please try again.", { duration: 1000 });
     }
   };
 
@@ -169,10 +180,14 @@ export default function AddBusiness() {
   };
 
   return (
-    <div className="container mx-auto p-6">
-      <div className="mb-6">
-        <h1 className="text-3xl font-bold">Add New Business</h1>
-        <p className="text-muted-foreground">Create a new business entry</p>
+    <div className="container mx-auto space-y-6 mt-2">
+      <div className="mb-6 bg-linear-to-r from-cyan-50 to-teal-50 dark:from-cyan-950/20 dark:to-teal-950/20 p-6 rounded-lg border">
+        <h1 className="text-3xl font-bold bg-linear-to-r from-cyan-600 to-teal-600 bg-clip-text text-transparent">
+          Add New Business
+        </h1>
+        <p className="text-muted-foreground mt-1">
+          Create a new business entry
+        </p>
       </div>
 
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
@@ -200,10 +215,9 @@ export default function AddBusiness() {
               <Label htmlFor="typeOfBusiness">
                 Type of Business <span className="text-red-500">*</span>
               </Label>
-              <Input
-                id="typeOfBusiness"
-                {...register("typeOfBusiness")}
-                placeholder="e.g., Restaurant, Hotel"
+              <BusinessTypeCombobox
+                onValueChange={(value) => setValue("typeOfBusiness", value)}
+                placeholder="Select business type"
               />
               {errors.typeOfBusiness && (
                 <p className="text-red-500 text-sm mt-1">
@@ -216,10 +230,9 @@ export default function AddBusiness() {
               <Label htmlFor="country">
                 Country <span className="text-red-500">*</span>
               </Label>
-              <Input
-                id="country"
-                {...register("country")}
-                placeholder="Enter country"
+              <CountryCombobox
+                onValueChange={(value) => setValue("country", value)}
+                placeholder="Select a country"
               />
               {errors.country && (
                 <p className="text-red-500 text-sm mt-1">
@@ -232,11 +245,18 @@ export default function AddBusiness() {
               <Label htmlFor="package">
                 Package <span className="text-red-500">*</span>
               </Label>
-              <Input
-                id="package"
-                {...register("package")}
-                placeholder="Enter package"
-              />
+              <Select onValueChange={(value) => setValue("package", value)}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select a package" />
+                </SelectTrigger>
+                <SelectContent>
+                  {PACKAGES.map((pkg) => (
+                    <SelectItem key={pkg} value={pkg}>
+                      {pkg}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
               {errors.package && (
                 <p className="text-red-500 text-sm mt-1">
                   {errors.package.message}
@@ -362,103 +382,37 @@ export default function AddBusiness() {
           <h2 className="text-xl font-semibold mb-4">Assignments</h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {/* Content Writers */}
-            <div>
-              <Label>Assigned Content Writers (CW)</Label>
-              <div className="border rounded p-3 max-h-40 overflow-y-auto">
-                {isLoadingUsers ? (
-                  <p className="text-sm text-muted-foreground">
-                    Loading users...
-                  </p>
-                ) : cwUsers.length === 0 ? (
-                  <p className="text-sm text-muted-foreground">
-                    No CW users found
-                  </p>
-                ) : (
-                  cwUsers.map((user) => (
-                    <label
-                      key={user._id}
-                      className="flex items-center gap-2 mb-2 cursor-pointer"
-                    >
-                      <input
-                        type="checkbox"
-                        checked={selectedCW.includes(user._id)}
-                        onChange={() =>
-                          toggleSelection(user._id, selectedCW, setSelectedCW)
-                        }
-                        className="rounded"
-                      />
-                      <span className="text-sm">{user.username}</span>
-                    </label>
-                  ))
-                )}
-              </div>
-            </div>
+            <UserMultiSelect
+              label="Assigned Content Writers (CW)"
+              users={cwUsers}
+              selectedUsers={selectedCW}
+              onToggle={(userId) =>
+                toggleSelection(userId, selectedCW, setSelectedCW)
+              }
+              isLoading={isLoadingUsers}
+            />
 
             {/* Content Designers */}
-            <div>
-              <Label>Assigned Content Designers (CD)</Label>
-              <div className="border rounded p-3 max-h-40 overflow-y-auto">
-                {isLoadingUsers ? (
-                  <p className="text-sm text-muted-foreground">
-                    Loading users...
-                  </p>
-                ) : cdUsers.length === 0 ? (
-                  <p className="text-sm text-muted-foreground">
-                    No CD users found
-                  </p>
-                ) : (
-                  cdUsers.map((user) => (
-                    <label
-                      key={user._id}
-                      className="flex items-center gap-2 mb-2 cursor-pointer"
-                    >
-                      <input
-                        type="checkbox"
-                        checked={selectedCD.includes(user._id)}
-                        onChange={() =>
-                          toggleSelection(user._id, selectedCD, setSelectedCD)
-                        }
-                        className="rounded"
-                      />
-                      <span className="text-sm">{user.username}</span>
-                    </label>
-                  ))
-                )}
-              </div>
-            </div>
+            <UserMultiSelect
+              label="Assigned Content Designers (CD)"
+              users={cdUsers}
+              selectedUsers={selectedCD}
+              onToggle={(userId) =>
+                toggleSelection(userId, selectedCD, setSelectedCD)
+              }
+              isLoading={isLoadingUsers}
+            />
 
             {/* Video Editors */}
-            <div>
-              <Label>Assigned Video Editors (VE)</Label>
-              <div className="border rounded p-3 max-h-40 overflow-y-auto">
-                {isLoadingUsers ? (
-                  <p className="text-sm text-muted-foreground">
-                    Loading users...
-                  </p>
-                ) : veUsers.length === 0 ? (
-                  <p className="text-sm text-muted-foreground">
-                    No VE users found
-                  </p>
-                ) : (
-                  veUsers.map((user) => (
-                    <label
-                      key={user._id}
-                      className="flex items-center gap-2 mb-2 cursor-pointer"
-                    >
-                      <input
-                        type="checkbox"
-                        checked={selectedVE.includes(user._id)}
-                        onChange={() =>
-                          toggleSelection(user._id, selectedVE, setSelectedVE)
-                        }
-                        className="rounded"
-                      />
-                      <span className="text-sm">{user.username}</span>
-                    </label>
-                  ))
-                )}
-              </div>
-            </div>
+            <UserMultiSelect
+              label="Assigned Video Editors (VE)"
+              users={veUsers}
+              selectedUsers={selectedVE}
+              onToggle={(userId) =>
+                toggleSelection(userId, selectedVE, setSelectedVE)
+              }
+              isLoading={isLoadingUsers}
+            />
           </div>
         </div>
 

@@ -14,10 +14,10 @@ export default function Navbar() {
   const handleLogout = async () => {
     try {
       await logout().unwrap();
-      toast.success("Logged out successfully");
+      toast.success("Logged out successfully", { duration: 1000 });
       navigate("/login");
     } catch (error) {
-      toast.error("Failed to logout");
+      toast.error("Failed to logout", { duration: 1000 });
     }
   };
 

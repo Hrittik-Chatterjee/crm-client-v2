@@ -73,7 +73,13 @@ export function ViewContentDialog({
             <div className="flex gap-2">
               <Badge
                 variant="outline"
-                className="min-w-20 justify-center bg-purple-100 text-purple-700 border-purple-300 dark:bg-purple-950/40 dark:text-purple-400 dark:border-purple-800"
+                className={`min-w-20 justify-center ${
+                  content.contentType.toLowerCase() === "poster"
+                    ? "bg-blue-100 text-blue-700 border-blue-300 dark:bg-blue-950/40 dark:text-blue-400 dark:border-blue-800"
+                    : content.contentType.toLowerCase() === "video"
+                    ? "bg-orange-100 text-orange-700 border-orange-300 dark:bg-orange-950/40 dark:text-orange-400 dark:border-orange-800"
+                    : "bg-purple-100 text-purple-700 border-purple-300 dark:bg-purple-950/40 dark:text-purple-400 dark:border-purple-800"
+                }`}
               >
                 {content.contentType.toUpperCase()}
               </Badge>
@@ -127,17 +133,23 @@ export function ViewContentDialog({
                     Content Details
                   </h3>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {/* Post Material */}
-                    <ReadOnlyTextarea
-                      label="Social Media Caption"
-                      value={content.postMaterial}
-                    />
-
-                    {/* Tags */}
-                    <ReadOnlyTextarea
-                      label="Tags & Hashtags"
-                      value={content.tags}
-                    />
+                    {/* Social Media Caption with Tags Combined */}
+                    {(content.postMaterial || content.tags) && (
+                      <div className="space-y-2 md:col-span-2">
+                        <Label>Social Media Caption & Tags</Label>
+                        <div className="relative flex min-h-20 w-full rounded-md border border-input bg-muted/30 px-3 py-2 text-sm">
+                          <p className="whitespace-pre-wrap w-full">
+                            {content.postMaterial}
+                            {content.postMaterial && content.tags && '\n\n\n\n'}
+                            {content.tags}
+                          </p>
+                          <CopyButton
+                            content={`${content.postMaterial || ''}${content.postMaterial && content.tags ? '\n\n\n\n' : ''}${content.tags || ''}`}
+                            className="absolute top-2 right-2"
+                          />
+                        </div>
+                      </div>
+                    )}
 
                     {/* Poster Material - Show if contentType is poster or both */}
                     {showPosterFields && (
