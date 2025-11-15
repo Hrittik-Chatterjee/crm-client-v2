@@ -15,7 +15,7 @@ import {
   Youtube,
   MessageCircle,
 } from "lucide-react";
-import { Business } from "@/redux/features/business/businessApi";
+import type { Business } from "@/types";
 
 interface BusinessCardProps {
   business: Business;
@@ -116,7 +116,7 @@ export function BusinessCard({
             <div className="flex items-center gap-2 text-muted-foreground">
               <Mail className="h-4 w-4 text-rose-600 dark:text-rose-400" />
               <span className="font-medium">Email:</span>
-              <span className="text-blue-600 dark:text-blue-400 break-all">
+              <span className="text-blue-600 dark:text-blue-400 break-words">
                 {business.email}
               </span>
             </div>

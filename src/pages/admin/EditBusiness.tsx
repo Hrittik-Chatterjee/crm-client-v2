@@ -94,7 +94,9 @@ export default function EditBusiness() {
 
   const { data: businessData, isLoading: isLoadingBusiness } =
     useGetBusinessByIdQuery(id!);
-  const { data: usersData, isLoading: isLoadingUsers } = useGetAllUsersQuery({ limit: 1000 });
+  const { data: usersData, isLoading: isLoadingUsers } = useGetAllUsersQuery({
+    limit: 1000,
+  });
   const [updateBusiness, { isLoading: isUpdating }] =
     useUpdateBusinessMutation();
 
@@ -245,7 +247,9 @@ export default function EditBusiness() {
       navigate("/admin/businesses");
     } catch (error) {
       console.error("Error updating business:", error);
-      toast.error("Failed to update business. Please try again.", { duration: 1000 });
+      toast.error("Failed to update business. Please try again.", {
+        duration: 1000,
+      });
     }
   };
 
@@ -270,7 +274,7 @@ export default function EditBusiness() {
 
   if (isLoadingBusiness) {
     return (
-      <div className="container mx-auto p-6">
+      <div className="space-y-6 max-w-4xl">
         <p>Loading business data...</p>
       </div>
     );
@@ -278,14 +282,14 @@ export default function EditBusiness() {
 
   if (!businessData?.data) {
     return (
-      <div className="container mx-auto p-6">
+      <div className="space-y-6 max-w-4xl">
         <p>Business not found</p>
       </div>
     );
   }
 
   return (
-    <div className="container mx-auto p-6">
+    <div className="space-y-6 max-w-4xl">
       <div className="mb-6">
         <h1 className="text-3xl font-bold">Edit Business</h1>
         <p className="text-muted-foreground">Update business information</p>
@@ -295,7 +299,7 @@ export default function EditBusiness() {
         {/* Basic Information */}
         <div className="bg-card p-6 rounded-lg border shadow-sm">
           <h2 className="text-xl font-semibold mb-4">Basic Information</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <Label htmlFor="businessName">
                 Business Name <span className="text-red-500">*</span>
@@ -414,7 +418,7 @@ export default function EditBusiness() {
         {/* Contact Information */}
         <div className="bg-card p-6 rounded-lg border shadow-sm">
           <h2 className="text-xl font-semibold mb-4">Contact Information</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <Label htmlFor="contactDetails">Contact Details</Label>
               <Input
@@ -458,7 +462,7 @@ export default function EditBusiness() {
           {/* Facebook */}
           <div className="mb-4">
             <h3 className="font-medium mb-2">Facebook</h3>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
               <div>
                 <Label htmlFor="facebookUrl">URL</Label>
                 <Input
@@ -506,7 +510,7 @@ export default function EditBusiness() {
           {/* Instagram */}
           <div className="mb-4">
             <h3 className="font-medium mb-2">Instagram</h3>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
               <div>
                 <Label htmlFor="instagramUrl">URL</Label>
                 <Input
@@ -554,7 +558,7 @@ export default function EditBusiness() {
           {/* WhatsApp */}
           <div className="mb-4">
             <h3 className="font-medium mb-2">WhatsApp</h3>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
               <div>
                 <Label htmlFor="whatsAppUrl">URL</Label>
                 <Input
@@ -602,7 +606,7 @@ export default function EditBusiness() {
           {/* YouTube */}
           <div className="mb-4">
             <h3 className="font-medium mb-2">YouTube</h3>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
               <div>
                 <Label htmlFor="youtubeUrl">URL</Label>
                 <Input
@@ -741,7 +745,7 @@ export default function EditBusiness() {
         </div>
 
         {/* Actions */}
-        <div className="flex gap-4">
+        <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
           <Button type="submit" disabled={isUpdating} className="flex-1">
             {isUpdating ? "Updating..." : "Update Business"}
           </Button>

@@ -14,8 +14,22 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { cn } from "@/lib/utils";
-import { useGetAllBusinessesQuery, useUpdateBusinessMutation } from "@/redux/features/business/businessApi";
+import {
+  useGetAllBusinessesQuery,
+  useUpdateBusinessMutation,
+} from "@/redux/features/business/businessApi";
 import {
   useCreateRegularContentMutation,
   ContentType,
@@ -72,10 +86,13 @@ function StatusSwitch({
   };
 
   return (
-    <div className="flex justify-center">
-      <div className="relative inline-grid h-8 grid-cols-[1fr_1fr] items-center text-sm font-medium shadow-sm">
-        <Switch checked={checked} onCheckedChange={handleChange} />
-      </div>
+    <div className="flex justify-center items-center">
+      <Switch
+        checked={checked}
+        onCheckedChange={handleChange}
+        className="h-4 w-6 md:h-[1.15rem] md:w-8"
+        thumbClassName="size-3 md:size-4"
+      />
     </div>
   );
 }
@@ -100,25 +117,25 @@ const createColumns = (
   handleStatusChange: (id: string, newStatus: boolean) => void,
   handleView: (content: Content) => void,
   handleEdit: (content: Content) => void,
-  handleDelete: (id: string) => void
+  handleDelete: (id: string, businessName: string) => void
 ): ColumnDef<Content>[] => [
   {
     accessorKey: "businessName",
-    header: () => <div className="text-center">Business Name</div>,
+    header: () => <div className="text-center text-xs md:text-sm">Business Name</div>,
     cell: ({ row }) => {
-      return <div className="text-center">{row.getValue("businessName")}</div>;
+      return <div className="text-center text-xs md:text-sm">{row.getValue("businessName")}</div>;
     },
   },
   {
     accessorKey: "date",
-    header: () => <div className="text-center">Date</div>,
+    header: () => <div className="text-center text-xs md:text-sm">Date</div>,
     cell: ({ row }) => {
-      return <div className="text-center">{row.getValue("date")}</div>;
+      return <div className="text-center text-xs md:text-sm">{row.getValue("date")}</div>;
     },
   },
   {
     accessorKey: "status",
-    header: () => <div className="text-center">Status</div>,
+    header: () => <div className="text-center text-xs md:text-sm">Status</div>,
     cell: ({ row }) => {
       const status = row.getValue("status") as boolean;
       return (
@@ -127,8 +144,8 @@ const createColumns = (
             variant={status ? "default" : "outline"}
             className={
               status
-                ? "bg-green-100 text-green-700 border-green-300 dark:bg-green-950/40 dark:text-green-400 dark:border-green-800"
-                : "bg-red-100 text-red-700 border-red-300 dark:bg-red-950/40 dark:text-red-400 dark:border-red-800"
+                ? "bg-green-100 text-green-700 border-green-300 dark:bg-green-950/40 dark:text-green-400 dark:border-green-800 text-[10px] md:text-xs px-1.5 md:px-2.5"
+                : "bg-red-100 text-red-700 border-red-300 dark:bg-red-950/40 dark:text-red-400 dark:border-red-800 text-[10px] md:text-xs px-1.5 md:px-2.5"
             }
           >
             {status ? "Done" : "Pending"}
@@ -139,19 +156,19 @@ const createColumns = (
   },
   {
     accessorKey: "contentType",
-    header: () => <div className="text-center">Content Type</div>,
+    header: () => <div className="text-center text-xs md:text-sm">Content Type</div>,
     cell: ({ row }) => {
       const contentType = row.getValue("contentType") as string;
       const getContentTypeColor = () => {
         switch (contentType.toLowerCase()) {
           case "poster":
-            return "bg-blue-100 text-blue-700 border-blue-300 dark:bg-blue-950/40 dark:text-blue-400 dark:border-blue-800";
+            return "bg-blue-100 text-blue-700 border-blue-300 dark:bg-blue-950/40 dark:text-blue-400 dark:border-blue-800 text-[10px] md:text-xs px-1.5 md:px-2.5";
           case "video":
-            return "bg-orange-100 text-orange-700 border-orange-300 dark:bg-orange-950/40 dark:text-orange-400 dark:border-orange-800";
+            return "bg-orange-100 text-orange-700 border-orange-300 dark:bg-orange-950/40 dark:text-orange-400 dark:border-orange-800 text-[10px] md:text-xs px-1.5 md:px-2.5";
           case "both":
-            return "bg-purple-100 text-purple-700 border-purple-300 dark:bg-purple-950/40 dark:text-purple-400 dark:border-purple-800";
+            return "bg-purple-100 text-purple-700 border-purple-300 dark:bg-purple-950/40 dark:text-purple-400 dark:border-purple-800 text-[10px] md:text-xs px-1.5 md:px-2.5";
           default:
-            return "bg-gray-100 text-gray-700 border-gray-300 dark:bg-gray-950/40 dark:text-gray-400 dark:border-gray-800";
+            return "bg-gray-100 text-gray-700 border-gray-300 dark:bg-gray-950/40 dark:text-gray-400 dark:border-gray-800 text-[10px] md:text-xs px-1.5 md:px-2.5";
         }
       };
       return (
@@ -165,7 +182,7 @@ const createColumns = (
   },
   {
     id: "changeStatus",
-    header: () => <div className="text-center">Change Status</div>,
+    header: () => <div className="text-center text-xs md:text-sm">Change Status</div>,
     cell: ({ row }) => {
       const status = row.getValue("status") as boolean;
       return (
@@ -181,15 +198,15 @@ const createColumns = (
   },
   {
     id: "action",
-    header: () => <div className="text-center">Action</div>,
+    header: () => <div className="text-center text-xs md:text-sm">Action</div>,
     cell: ({ row }) => {
       return (
-        <div className="flex justify-center gap-2">
+        <div className="flex justify-center gap-1 md:gap-2">
           <Button
             size="sm"
             variant="outline"
             onClick={() => handleEdit(row.original)}
-            className="hover:bg-blue-50 hover:text-blue-600 hover:border-blue-600 dark:hover:bg-blue-950/40 dark:hover:text-blue-400 dark:hover:border-blue-600"
+            className="hover:bg-blue-50 hover:text-blue-600 hover:border-blue-600 dark:hover:bg-blue-950/40 dark:hover:text-blue-400 dark:hover:border-blue-600 text-xs md:text-sm px-2 md:px-3"
           >
             Edit
           </Button>
@@ -197,18 +214,38 @@ const createColumns = (
             size="sm"
             variant="outline"
             onClick={() => handleView(row.original)}
-            className="hover:bg-green-50 hover:text-green-600 hover:border-green-600 dark:hover:bg-green-950/40 dark:hover:text-green-400 dark:hover:border-green-600"
+            className="hover:bg-green-50 hover:text-green-600 hover:border-green-600 dark:hover:bg-green-950/40 dark:hover:text-green-400 dark:hover:border-green-600 text-xs md:text-sm px-2 md:px-3"
           >
             View
           </Button>
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={() => handleDelete(row.original.id)}
-            className="hover:bg-red-50 hover:text-red-600 hover:border-red-600 dark:hover:bg-red-950/40 dark:hover:text-red-400 dark:hover:border-red-600"
-          >
-            Delete
-          </Button>
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button
+                size="sm"
+                variant="outline"
+                className="hover:bg-red-50 hover:text-red-600 hover:border-red-600 dark:hover:bg-red-950/40 dark:hover:text-red-400 dark:hover:border-red-600 text-xs md:text-sm px-2 md:px-3"
+              >
+                Delete
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  This will permanently delete the content for "{row.original.businessName}". This action cannot be undone.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogAction
+                  onClick={() => handleDelete(row.original.id, row.original.businessName)}
+                  className="bg-destructive hover:bg-destructive/90"
+                >
+                  Delete
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
         </div>
       );
     },
@@ -280,7 +317,9 @@ export default function WriteContent() {
   // Auto-populate tags when business is selected
   useEffect(() => {
     if (selectedBusiness && businessesData?.data) {
-      const business = businessesData.data.find(b => b._id === selectedBusiness);
+      const business = businessesData.data.find(
+        (b) => b._id === selectedBusiness
+      );
       if (business && business.tags) {
         setValue("tags", business.tags);
       }
@@ -318,7 +357,7 @@ export default function WriteContent() {
       // This updates even if tags are empty (to clear previous tags)
       await updateBusiness({
         id: data.business,
-        data: { tags: data.tags || "" }
+        data: { tags: data.tags || "" },
       }).unwrap();
 
       // Reset form after successful submission
@@ -340,7 +379,9 @@ export default function WriteContent() {
       toast.success("Content created successfully!", { duration: Infinity });
     } catch (error) {
       console.error("Error creating content:", error);
-      toast.error("Failed to create content. Please try again.", { duration: Infinity });
+      toast.error("Failed to create content. Please try again.", {
+        duration: Infinity,
+      });
     }
   };
 
@@ -409,14 +450,10 @@ export default function WriteContent() {
   };
 
   const handleDelete = useCallback(
-    async (id: string) => {
-      if (!window.confirm("Are you sure you want to delete this content?")) {
-        return;
-      }
-
+    async (id: string, businessName: string) => {
       try {
         await deleteContent(id).unwrap();
-        toast.success("Content deleted successfully", { duration: Infinity });
+        toast.success(`Content for "${businessName}" deleted successfully`, { duration: Infinity });
       } catch (error) {
         console.error("Error deleting content:", error);
         toast.error("Failed to delete content", { duration: Infinity });
@@ -456,7 +493,7 @@ export default function WriteContent() {
                 <div className="h-1 w-1 rounded-full bg-blue-600" />
                 Basic Information
               </h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
                 {/* Business Selection */}
                 <div className="space-y-2">
                   <Label htmlFor="business">
@@ -533,7 +570,7 @@ export default function WriteContent() {
                 <div className="h-1 w-1 rounded-full bg-blue-600" />
                 Content Type <span className="text-red-500">*</span>
               </h3>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
                 {[
                   {
                     value: ContentType.POSTER,
@@ -682,7 +719,7 @@ export default function WriteContent() {
         </Card>
 
         {/* Submit Button */}
-        <div className="flex justify-end gap-4">
+        <div className="flex flex-col sm:flex-row justify-end gap-3 sm:gap-4">
           <Button
             type="button"
             variant="outline"

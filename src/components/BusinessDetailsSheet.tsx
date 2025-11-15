@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { useState } from "react";
 import {
   Sheet,
@@ -29,7 +30,7 @@ import {
   User,
   Key,
 } from "lucide-react";
-import { Business } from "@/redux/features/business/businessApi";
+import type { Business } from "@/types";
 
 interface BusinessDetailsSheetProps {
   business: Business | null;
@@ -42,7 +43,9 @@ export function BusinessDetailsSheet({
   open,
   onOpenChange,
 }: BusinessDetailsSheetProps) {
-  const [visiblePasswords, setVisiblePasswords] = useState<Record<string, boolean>>({});
+  const [visiblePasswords, setVisiblePasswords] = useState<
+    Record<string, boolean>
+  >({});
 
   if (!business) return null;
 
@@ -132,19 +135,22 @@ export function BusinessDetailsSheet({
     };
     iconColor?: string;
   }) => {
-    if (!credentials || (!credentials.url && !credentials.username && !credentials.password)) {
+    if (
+      !credentials ||
+      (!credentials.url && !credentials.username && !credentials.password)
+    ) {
       return null;
     }
 
     const hasCredentials = credentials.username || credentials.password;
 
     return (
-      <div className="space-y-2">
+      <div className="space-y-2 min-w-0">
         <Label className="flex items-center gap-2 text-sm font-semibold">
           <Icon className={`h-4 w-4 ${iconColor}`} />
           {label}
         </Label>
-        <div className="rounded-md border border-input bg-muted/30 p-3 space-y-3">
+        <div className="rounded-md border border-input bg-muted/30 p-3 space-y-3 overflow-hidden">
           {/* URL */}
           {credentials.url && (
             <div className="flex items-center gap-2 min-w-0">
@@ -153,9 +159,9 @@ export function BusinessDetailsSheet({
                 href={credentials.url}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-blue-600 dark:text-blue-400 hover:underline text-sm flex items-center gap-1 truncate"
+                className="text-blue-600 dark:text-blue-400 hover:underline text-sm flex items-center gap-1"
               >
-                <span className="truncate">{credentials.url}</span>
+                <span>{label}</span>
                 <ExternalLink className="h-3 w-3 shrink-0" />
               </a>
             </div>
@@ -174,7 +180,7 @@ export function BusinessDetailsSheet({
 
           {/* Password */}
           {credentials.password && (
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 min-w-0">
               <Key className="h-3 w-3 text-muted-foreground shrink-0" />
               <span className="text-sm font-medium shrink-0">Password:</span>
               <code className="text-sm bg-background px-2 py-0.5 rounded flex-1 overflow-hidden text-ellipsis whitespace-nowrap">
@@ -186,7 +192,9 @@ export function BusinessDetailsSheet({
                 size="sm"
                 onClick={() => togglePasswordVisibility(platform)}
                 className="h-7 w-7 p-0 shrink-0"
-                title={visiblePasswords[platform] ? "Hide password" : "Show password"}
+                title={
+                  visiblePasswords[platform] ? "Hide password" : "Show password"
+                }
               >
                 {visiblePasswords[platform] ? (
                   <EyeOff className="h-4 w-4" />
@@ -209,7 +217,7 @@ export function BusinessDetailsSheet({
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent className="w-full sm:max-w-2xl overflow-hidden flex flex-col p-0">
+      <SheetContent className="w-[85vw] sm:w-full sm:max-w-2xl overflow-hidden flex flex-col p-0">
         <SheetHeader className="px-6 pt-6 pb-4 border-b shrink-0">
           <div className="space-y-3">
             <SheetTitle className="text-2xl font-bold">

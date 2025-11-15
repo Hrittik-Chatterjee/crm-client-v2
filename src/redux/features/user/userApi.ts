@@ -1,50 +1,12 @@
 import { baseApi } from "../../baseApi";
-
-export interface User {
-  _id: string;
-  username: string;
-  roles: string[];
-  createdAt?: string;
-  updatedAt?: string;
-}
-
-export interface UsersResponse {
-  success: boolean;
-  message: string;
-  data: User[];
-  meta?: {
-    page: number;
-    limit: number;
-    total: number;
-  };
-}
-
-export interface UserResponse {
-  success: boolean;
-  message: string;
-  data: User;
-}
-
-export interface UserQueryParams {
-  page?: number;
-  limit?: number;
-  sortBy?: string;
-  sortOrder?: "asc" | "desc";
-  search?: string;
-  role?: string;
-}
-
-export interface CreateUserPayload {
-  username: string;
-  password: string;
-  roles?: string[];
-}
-
-export interface UpdateUserPayload {
-  username?: string;
-  password?: string;
-  roles?: string[];
-}
+import type {
+  User,
+  UsersResponse,
+  UserResponse,
+  UserQueryParams,
+  CreateUserPayload,
+  UpdateUserPayload,
+} from "@/types";
 
 export const userApi = baseApi.injectEndpoints({
   endpoints: (builder) => ({

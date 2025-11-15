@@ -1,89 +1,17 @@
 import { baseApi } from "../../baseApi";
+import { ContentType } from "@/types";
+import type {
+  RegularContent,
+  CreateRegularContentPayload,
+  UpdateRegularContentPayload,
+  RegularContentResponse,
+  RegularContentsResponse,
+  RegularContentQueryParams,
+} from "@/types";
 
-export enum ContentType {
-  VIDEO = "video",
-  POSTER = "poster",
-  BOTH = "both",
-}
-
-export interface RegularContent {
-  _id: string;
-  business: string | { _id: string; businessName: string };
-  date: string;
-  contentType: ContentType;
-  postMaterial?: string;
-  tags?: string;
-  videoMaterial?: string;
-  vision?: string;
-  posterMaterial?: string;
-  comments?: string;
-  addedBy: string;
-  assignedCD: string;
-  assignedCW: string;
-  assignedVE?: string;
-  status: boolean;
-  createdAt?: string;
-  updatedAt?: string;
-}
-
-export interface CreateRegularContentPayload {
-  business: string;
-  date: string;
-  contentType: ContentType;
-  postMaterial?: string;
-  tags?: string;
-  videoMaterial?: string;
-  vision?: string;
-  posterMaterial?: string;
-  comments?: string;
-}
-
-export interface UpdateRegularContentPayload {
-  business?: string;
-  date?: string;
-  contentType?: ContentType;
-  postMaterial?: string;
-  tags?: string;
-  videoMaterial?: string;
-  vision?: string;
-  posterMaterial?: string;
-  comments?: string;
-  status?: boolean;
-}
-
-export interface RegularContentResponse {
-  success: boolean;
-  message: string;
-  data: RegularContent;
-}
-
-export interface RegularContentsResponse {
-  success: boolean;
-  message: string;
-  data: RegularContent[];
-  meta: {
-    total: number;
-    page: number;
-    limit: number;
-    totalPages: number;
-  };
-}
-
-export interface RegularContentQueryParams {
-  date?: string;
-  todayOnly?: string;
-  business?: string;
-  assignedCD?: string;
-  assignedCW?: string;
-  assignedVE?: string;
-  addedBy?: string;
-  status?: string;
-  contentType?: string;
-  page?: string;
-  limit?: string;
-  sortBy?: string;
-  sortOrder?: string;
-}
+// Re-export types for backward compatibility
+export { ContentType };
+export type { RegularContent };
 
 export const contentApi = baseApi.injectEndpoints({
   endpoints: (builder) => ({

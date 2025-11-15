@@ -27,6 +27,17 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { format } from "date-fns";
 import { Switch } from "@/components/ui/switch";
 import { Filter, Check, ChevronDown, FileText } from "lucide-react";
@@ -35,12 +46,12 @@ import {
   useGetAllRegularContentsQuery,
   useUpdateRegularContentMutation,
   useDeleteRegularContentMutation,
-  RegularContent,
   contentApi,
 } from "@/redux/features/content/contentApi";
 import { useAppDispatch } from "@/redux/hook";
+import type { RegularContent, SocketContentEvent } from "@/types";
 
-// Content type for table display
+// Content type for table display (transformed from RegularContent)
 type Content = {
   id: string;
   businessId: string;
@@ -54,16 +65,6 @@ type Content = {
   vision?: string;
   posterMaterial?: string;
   comments?: string;
-};
-
-// Socket event data type
-type SocketContentEvent = {
-  type?: string;
-  business?: string;
-  message?: string;
-  addedBy?: string;
-  updatedBy?: string;
-  deletedBy?: string;
 };
 
 console.log("from dashboard");
@@ -92,24 +93,37 @@ function StatusSwitch({
   };
 
   return (
-    <div className="flex justify-center">
-      <div className="relative inline-grid h-8 grid-cols-[1fr_1fr] items-center text-sm font-medium shadow-sm">
+    <div className="flex justify-center items-center">
+      {/* Simple Switch for Mobile */}
+      <div className="block md:hidden">
         <Switch
           checked={checked}
           onCheckedChange={handleChange}
-          className="peer absolute inset-0 h-[inherit] w-auto rounded-lg border-2 data-[state=unchecked]:bg-linear-to-r data-[state=unchecked]:from-red-50 data-[state=unchecked]:to-red-100 dark:data-[state=unchecked]:from-red-950/40 dark:data-[state=unchecked]:to-red-900/40 data-[state=unchecked]:border-red-200 dark:data-[state=unchecked]:border-red-800 data-[state=checked]:bg-linear-to-r data-[state=checked]:from-green-100 data-[state=checked]:to-green-200 dark:data-[state=checked]:bg-linear-to-r dark:data-[state=checked]:from-green-950 dark:data-[state=checked]:to-emerald-950 data-[state=checked]:border-green-300 dark:data-[state=checked]:border-green-900 [&_span]:z-10 [&_span]:h-full [&_span]:w-1/2 [&_span]:rounded-md [&_span]:shadow-md [&_span]:transition-all [&_span]:duration-300 [&_span]:ease-[cubic-bezier(0.16,1,0.3,1)] [&_span]:bg-slate-700 dark:[&_span]:bg-neutral-800 [&_span]:data-[state=checked]:translate-x-full [&_span]:data-[state=checked]:rtl:-translate-x-full hover:shadow-md transition-shadow"
-          thumbClassName="!bg-slate-300 data-[state=checked]:!bg-slate-300 data-[state=unchecked]:!bg-slate-300 dark:!bg-slate-700 dark:data-[state=checked]:!bg-slate-700 dark:data-[state=unchecked]:!bg-slate-700"
+          className="h-4 w-6"
+          thumbClassName="size-3"
         />
-        <span className="pointer-events-none relative ms-1 flex items-center justify-center px-3 text-center transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] peer-data-[state=checked]:invisible peer-data-[state=unchecked]:translate-x-full peer-data-[state=unchecked]:rtl:-translate-x-full">
-          <span className="text-[11px] font-bold uppercase tracking-wide text-red-600 dark:text-red-400">
-            Pending
+      </div>
+
+      {/* Animated Label Switch for Desktop */}
+      <div className="hidden md:block">
+        <div className="relative inline-grid h-8 grid-cols-[1fr_1fr] items-center text-sm font-medium shadow-sm">
+          <Switch
+            checked={checked}
+            onCheckedChange={handleChange}
+            className="peer absolute inset-0 h-[inherit] w-auto rounded-lg border-2 data-[state=unchecked]:bg-linear-to-r data-[state=unchecked]:from-red-50 data-[state=unchecked]:to-red-100 dark:data-[state=unchecked]:from-red-950/40 dark:data-[state=unchecked]:to-red-900/40 data-[state=unchecked]:border-red-200 dark:data-[state=unchecked]:border-red-800 data-[state=checked]:bg-linear-to-r data-[state=checked]:from-green-100 data-[state=checked]:to-green-200 dark:data-[state=checked]:bg-linear-to-r dark:data-[state=checked]:from-green-950 dark:data-[state=checked]:to-emerald-950 data-[state=checked]:border-green-300 dark:data-[state=checked]:border-green-900 [&_span]:z-10 [&_span]:h-full [&_span]:w-1/2 [&_span]:rounded-md [&_span]:shadow-md [&_span]:transition-all [&_span]:duration-300 [&_span]:ease-[cubic-bezier(0.16,1,0.3,1)] [&_span]:bg-slate-700 dark:[&_span]:bg-neutral-800 [&_span]:data-[state=checked]:translate-x-full [&_span]:data-[state=checked]:rtl:-translate-x-full hover:shadow-md transition-shadow"
+            thumbClassName="!bg-slate-300 data-[state=checked]:!bg-slate-300 data-[state=unchecked]:!bg-slate-300 dark:!bg-slate-700 dark:data-[state=checked]:!bg-slate-700 dark:data-[state=unchecked]:!bg-slate-700"
+          />
+          <span className="pointer-events-none relative ms-1 flex items-center justify-center px-3 text-center transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] peer-data-[state=checked]:invisible peer-data-[state=unchecked]:translate-x-full peer-data-[state=unchecked]:rtl:-translate-x-full">
+            <span className="text-[11px] font-bold uppercase tracking-wide text-red-600 dark:text-red-400">
+              Pending
+            </span>
           </span>
-        </span>
-        <span className="pointer-events-none relative me-1 flex items-center justify-center px-3 text-center transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] peer-data-[state=checked]:-translate-x-full peer-data-[state=unchecked]:invisible peer-data-[state=checked]:rtl:translate-x-full">
-          <span className="text-[11px] font-bold uppercase tracking-wide text-green-600 dark:text-white drop-shadow">
-            Done
+          <span className="pointer-events-none relative me-1 flex items-center justify-center px-3 text-center transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] peer-data-[state=checked]:-translate-x-full peer-data-[state=unchecked]:invisible peer-data-[state=checked]:rtl:translate-x-full">
+            <span className="text-[11px] font-bold uppercase tracking-wide text-green-600 dark:text-white drop-shadow">
+              Done
+            </span>
           </span>
-        </span>
+        </div>
       </div>
     </div>
   );
@@ -120,7 +134,7 @@ const createColumns = (
   handleStatusChange: (id: string, newStatus: boolean) => void,
   handleView: (content: Content) => void,
   handleEdit: (content: Content) => void,
-  handleDelete: (id: string) => void
+  handleDelete: (id: string, businessName: string) => void
 ): ColumnDef<Content>[] => [
   {
     accessorKey: "businessName",
@@ -204,7 +218,7 @@ const createColumns = (
     header: () => <div className="text-center">Action</div>,
     cell: ({ row }) => {
       return (
-        <div className="flex justify-center gap-2">
+        <div className="flex flex-col sm:flex-row justify-center gap-2">
           <Button
             size="sm"
             variant="outline"
@@ -221,14 +235,34 @@ const createColumns = (
           >
             View
           </Button>
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={() => handleDelete(row.original.id)}
-            className="hover:bg-red-50 hover:text-red-600 hover:border-red-600 dark:hover:bg-red-950/40 dark:hover:text-red-400 dark:hover:border-red-600"
-          >
-            Delete
-          </Button>
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button
+                size="sm"
+                variant="outline"
+                className="hover:bg-red-50 hover:text-red-600 hover:border-red-600 dark:hover:bg-red-950/40 dark:hover:text-red-400 dark:hover:border-red-600"
+              >
+                Delete
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  This will permanently delete the content for "{row.original.businessName}". This action cannot be undone.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogAction
+                  onClick={() => handleDelete(row.original.id, row.original.businessName)}
+                  className="bg-destructive hover:bg-destructive/90"
+                >
+                  Delete
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
         </div>
       );
     },
@@ -373,15 +407,10 @@ export default function Dashboard() {
   );
 
   const handleDelete = useCallback(
-    async (id: string) => {
-      // Confirm before deleting
-      if (!window.confirm("Are you sure you want to delete this content?")) {
-        return;
-      }
-
+    async (id: string, businessName: string) => {
       try {
         await deleteContent(id).unwrap();
-        toast.success("Content deleted successfully!", { duration: Infinity });
+        toast.success(`Content for "${businessName}" deleted successfully!`, { duration: Infinity });
       } catch (error) {
         console.error("Failed to delete content:", error);
         toast.error("Failed to delete content. Please try again.", { duration: Infinity });
@@ -456,21 +485,22 @@ export default function Dashboard() {
 
   return (
     <div className="space-y-6 mt-2">
-      <div className="flex items-center justify-between bg-linear-to-r from-cyan-50 to-teal-50 dark:from-cyan-950/20 dark:to-teal-950/20 p-6 rounded-lg border">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 bg-linear-to-r from-cyan-50 to-teal-50 dark:from-cyan-950/20 dark:to-teal-950/20 p-4 sm:p-6 rounded-lg border">
         <div>
-          <h2 className="text-3xl font-bold bg-linear-to-r from-cyan-600 to-teal-600 bg-clip-text text-transparent flex items-center gap-2">
-            <FileText className="h-8 w-8 text-cyan-600" />
+          <h2 className="text-2xl sm:text-3xl font-bold bg-linear-to-r from-cyan-600 to-teal-600 bg-clip-text text-transparent flex items-center gap-2">
+            <FileText className="h-6 w-6 sm:h-8 sm:w-8 text-cyan-600" />
             Content
           </h2>
           <p className="text-sm text-muted-foreground mt-1">
-            {format(date, "EEEE, MMMM d, yyyy")}
+            <span className="hidden sm:inline">{format(date, "EEEE, MMMM d, yyyy")}</span>
+            <span className="sm:hidden">{format(date, "MMM d, yyyy")}</span>
           </p>
         </div>
         <Popover>
           <PopoverTrigger asChild>
             <Button
               variant="outline"
-              className="min-w-[200px] justify-start text-left font-normal hover:bg-white hover:border-blue-600 transition-all dark:hover:bg-blue-950/40 dark:hover:border-blue-600"
+              className="w-full sm:w-auto sm:min-w-[200px] justify-start text-left font-normal text-sm sm:text-base hover:bg-white hover:border-blue-600 transition-all dark:hover:bg-blue-950/40 dark:hover:border-blue-600"
             >
               <svg
                 xmlns="http://www.w3.org/2000/svg"
@@ -492,7 +522,7 @@ export default function Dashboard() {
               {format(date, "MMM d, yyyy")}
             </Button>
           </PopoverTrigger>
-          <PopoverContent className="w-auto p-0" align="end">
+          <PopoverContent className="w-auto p-0" align="center">
             <Calendar
               mode="single"
               selected={date}

@@ -229,7 +229,7 @@ export default function EditUser() {
           </Card>
 
           {/* Actions */}
-          <div className="flex gap-4">
+          <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
             <Button
               type="submit"
               disabled={isLoading}

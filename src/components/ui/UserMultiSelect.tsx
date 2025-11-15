@@ -3,11 +3,7 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Search } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
-
-interface User {
-  _id: string;
-  username: string;
-}
+import type { User } from "@/types";
 
 interface UserMultiSelectProps {
   label: string;

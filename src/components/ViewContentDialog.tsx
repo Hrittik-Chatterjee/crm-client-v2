@@ -64,13 +64,13 @@ export function ViewContentDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="!max-w-[85vw] !w-[85vw] h-[85vh] max-h-[85vh] flex flex-col p-0">
-        <DialogHeader className="px-6 pt-6 pb-4 border-b shrink-0">
-          <div className="flex items-center justify-between gap-4">
-            <DialogTitle className="text-2xl font-bold">
+      <DialogContent className="max-w-full sm:max-w-[90vw] lg:max-w-[85vw] w-full sm:w-[90vw] lg:w-[85vw] h-[90vh] sm:h-[85vh] max-h-[90vh] sm:max-h-[85vh] flex flex-col p-0">
+        <DialogHeader className="px-4 sm:px-6 pt-4 sm:pt-6 pb-3 sm:pb-4 border-b shrink-0">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4">
+            <DialogTitle className="text-xl sm:text-2xl font-bold">
               View Content
             </DialogTitle>
-            <div className="flex gap-2">
+            <div className="flex gap-2 flex-wrap">
               <Badge
                 variant="outline"
                 className={`min-w-20 justify-center ${
@@ -98,8 +98,8 @@ export function ViewContentDialog({
         </DialogHeader>
 
         <ScrollArea className="flex-1 overflow-auto">
-          <div className="p-6 space-y-6">
-            <Card className="p-6">
+          <div className="p-4 sm:p-6 space-y-4 sm:space-y-6">
+            <Card className="p-4 sm:p-6">
               <div className="space-y-6">
                 {/* Basic Information Section */}
                 <div>
@@ -107,7 +107,7 @@ export function ViewContentDialog({
                     <div className="h-1 w-1 rounded-full bg-blue-600" />
                     Basic Information
                   </h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
                     {/* Business */}
                     <div className="space-y-2">
                       <Label>Business</Label>
@@ -132,10 +132,10 @@ export function ViewContentDialog({
                     <div className="h-1 w-1 rounded-full bg-blue-600" />
                     Content Details
                   </h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 gap-4">
                     {/* Social Media Caption with Tags Combined */}
                     {(content.postMaterial || content.tags) && (
-                      <div className="space-y-2 md:col-span-2">
+                      <div className="space-y-2">
                         <Label>Social Media Caption & Tags</Label>
                         <div className="relative flex min-h-20 w-full rounded-md border border-input bg-muted/30 px-3 py-2 text-sm">
                           <p className="whitespace-pre-wrap w-full">
@@ -168,16 +168,14 @@ export function ViewContentDialog({
 
                     {/* Video Material - Show if contentType is video or both */}
                     {showVideoFields && (
-                      <div className="md:col-span-2">
-                        <ReadOnlyTextarea
-                          label="Video Script & Instructions"
-                          value={content.videoMaterial}
-                        />
-                      </div>
+                      <ReadOnlyTextarea
+                        label="Video Script & Instructions"
+                        value={content.videoMaterial}
+                      />
                     )}
 
                     {/* Comments */}
-                    <div className="md:col-span-2">
+                    <div>
                       <ReadOnlyTextarea
                         label="Internal Notes & Comments"
                         value={content.comments}

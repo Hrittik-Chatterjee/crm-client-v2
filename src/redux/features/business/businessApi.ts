@@ -1,74 +1,10 @@
 import { baseApi } from "../../baseApi";
-
-export interface Business {
-  _id: string;
-  businessName: string;
-  typeOfBusiness: string;
-  country: string;
-  package: string;
-  entryDate: string;
-  contactDetails?: string;
-  email?: string;
-  address?: string;
-  socialMediaLinks?: {
-    facebook?: {
-      url?: string;
-      username?: string;
-      password?: string;
-    };
-    instagram?: {
-      url?: string;
-      username?: string;
-      password?: string;
-    };
-    whatsApp?: {
-      url?: string;
-      username?: string;
-      password?: string;
-    };
-    youtube?: {
-      url?: string;
-      username?: string;
-      password?: string;
-    };
-    website?: string;
-    tripAdvisor?: string;
-    googleBusiness?: string;
-  };
-  note?: string;
-  tags?: string;
-  assignedCW?: string[];
-  assignedCD?: string[];
-  assignedVE?: string[];
-  status: boolean;
-  createdAt?: string;
-  updatedAt?: string;
-}
-
-export interface BusinessesResponse {
-  success: boolean;
-  message: string;
-  data: Business[];
-  meta?: {
-    page: number;
-    limit: number;
-    total: number;
-  };
-}
-
-export interface BusinessResponse {
-  success: boolean;
-  message: string;
-  data: Business;
-}
-
-export interface BusinessQueryParams {
-  page?: number;
-  limit?: number;
-  sortBy?: string;
-  sortOrder?: "asc" | "desc";
-  search?: string;
-}
+import type {
+  Business,
+  BusinessesResponse,
+  BusinessResponse,
+  BusinessQueryParams,
+} from "@/types";
 
 export const businessApi = baseApi.injectEndpoints({
   endpoints: (builder) => ({

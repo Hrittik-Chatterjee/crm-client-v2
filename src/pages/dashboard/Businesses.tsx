@@ -12,10 +12,8 @@ import {
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
 import { Building2, Search, List, Sparkles } from "lucide-react";
-import {
-  useGetAllBusinessesQuery,
-  Business,
-} from "@/redux/features/business/businessApi";
+import { useGetAllBusinessesQuery } from "@/redux/features/business/businessApi";
+import type { Business } from "@/types";
 import { BusinessCard } from "@/components/BusinessCard";
 import { BusinessDetailsSheet } from "@/components/BusinessDetailsSheet";
 
@@ -72,10 +70,10 @@ export default function Businesses() {
   return (
     <div className="space-y-6 mt-2">
       {/* Header */}
-      <div className="flex items-center justify-between bg-linear-to-r from-cyan-50 to-teal-50 dark:from-cyan-950/20 dark:to-teal-950/20 p-6 rounded-lg border">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 bg-linear-to-r from-cyan-50 to-teal-50 dark:from-cyan-950/20 dark:to-teal-950/20 p-4 sm:p-6 rounded-lg border">
         <div>
-          <h2 className="text-3xl font-bold bg-linear-to-r from-cyan-600 to-teal-600 bg-clip-text text-transparent flex items-center gap-2">
-            <Building2 className="h-8 w-8 text-cyan-600" />
+          <h2 className="text-2xl sm:text-3xl font-bold bg-linear-to-r from-cyan-600 to-teal-600 bg-clip-text text-transparent flex items-center gap-2">
+            <Building2 className="h-6 w-6 sm:h-8 sm:w-8 text-cyan-600" />
             Businesses
           </h2>
           <p className="text-sm text-muted-foreground mt-1">
@@ -83,11 +81,11 @@ export default function Businesses() {
           </p>
         </div>
 
-        <div className="flex gap-2">
+        <div className="flex gap-2 w-full sm:w-auto">
           {/* Show All Businesses Sidebar */}
           <Sheet open={isBusinessListOpen} onOpenChange={setIsBusinessListOpen}>
             <SheetTrigger asChild>
-              <Button variant="outline">
+              <Button variant="outline" className="w-full sm:w-auto text-sm sm:text-base">
                 <List className="h-4 w-4 mr-2" />
                 All Businesses
                 <Badge
@@ -98,7 +96,7 @@ export default function Businesses() {
                 </Badge>
               </Button>
             </SheetTrigger>
-            <SheetContent className="w-full sm:max-w-md overflow-hidden flex flex-col p-0">
+            <SheetContent className="w-[85vw] sm:w-full sm:max-w-md overflow-hidden flex flex-col p-0">
               <SheetHeader className="px-6 pt-6 pb-4 border-b shrink-0">
                 <SheetTitle className="text-xl font-bold flex items-center gap-2">
                   <Building2 className="h-5 w-5 text-blue-600" />
@@ -224,7 +222,7 @@ export default function Businesses() {
 
       {/* Business Cards Grid */}
       {!isLoading && !isError && filteredBusinesses.length > 0 && (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
           {filteredBusinesses.map((business) => (
             <BusinessCard
               key={business._id}

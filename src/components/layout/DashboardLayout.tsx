@@ -1,6 +1,10 @@
 import { Outlet } from "react-router";
 import { AppSidebar } from "@/components/app-sidebar";
-import { SidebarInset, SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
+import {
+  SidebarInset,
+  SidebarProvider,
+  SidebarTrigger,
+} from "@/components/ui/sidebar";
 import { Separator } from "@/components/ui/separator";
 import {
   Breadcrumb,
@@ -9,7 +13,10 @@ import {
   BreadcrumbList,
 } from "@/components/ui/breadcrumb";
 import { Button } from "@/components/ui/button";
-import { useLogoutMutation, useGetCurrentUserQuery } from "@/redux/features/auth/authApi";
+import {
+  useLogoutMutation,
+  useGetCurrentUserQuery,
+} from "@/redux/features/auth/authApi";
 import { useNavigate, Link } from "react-router";
 import { toast } from "sonner";
 import { ModeToggle } from "./ModeToggle";
@@ -25,14 +32,16 @@ export default function DashboardLayout() {
       await logout().unwrap();
       toast.success("Logged out successfully");
       navigate("/login");
-    } catch (error) {
+    } catch {
       toast.error("Failed to logout");
     }
   };
 
   // Check if user is admin or super admin
-  const isAdmin = data?.data?.roles.includes(role.admin) || data?.data?.roles.includes(role.superAdmin);
-  const isOnAdminRoute = window.location.pathname.startsWith('/admin');
+  const isAdmin =
+    data?.data?.roles.includes(role.admin) ||
+    data?.data?.roles.includes(role.superAdmin);
+  const isOnAdminRoute = window.location.pathname.startsWith("/admin");
 
   return (
     <SidebarProvider>
@@ -44,26 +53,28 @@ export default function DashboardLayout() {
           <Breadcrumb>
             <BreadcrumbList>
               <BreadcrumbItem className="hidden md:block">
-                <BreadcrumbLink href={isOnAdminRoute ? "/admin/dashboard" : "/dashboard"}>
+                <BreadcrumbLink
+                  href={isOnAdminRoute ? "/admin/dashboard" : "/dashboard"}
+                >
                   SR CREATIVE HUB CONSOLE
                 </BreadcrumbLink>
               </BreadcrumbItem>
             </BreadcrumbList>
           </Breadcrumb>
-          <div className="ml-auto flex items-center gap-4">
+          <div className="ml-auto flex items-center gap-2 sm:gap-4 flex-wrap">
             {isAdmin && (
               <>
                 {isOnAdminRoute ? (
                   <Link
                     to="/dashboard"
-                    className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
+                    className="text-xs sm:text-sm font-medium text-muted-foreground hover:text-foreground transition-colors whitespace-nowrap"
                   >
                     View Dashboard
                   </Link>
                 ) : (
                   <Link
                     to="/admin/dashboard"
-                    className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
+                    className="text-xs sm:text-sm font-medium text-muted-foreground hover:text-foreground transition-colors whitespace-nowrap"
                   >
                     Admin Panel
                   </Link>
@@ -71,7 +82,12 @@ export default function DashboardLayout() {
               </>
             )}
             <ModeToggle />
-            <Button variant="outline" size="sm" onClick={handleLogout}>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleLogout}
+              className="text-xs sm:text-sm"
+            >
               Logout
             </Button>
           </div>

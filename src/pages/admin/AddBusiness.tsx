@@ -194,7 +194,7 @@ export default function AddBusiness() {
         {/* Basic Information */}
         <div className="bg-card p-6 rounded-lg border shadow-sm">
           <h2 className="text-xl font-semibold mb-4">Basic Information</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <Label htmlFor="businessName">
                 Business Name <span className="text-red-500">*</span>
@@ -302,7 +302,7 @@ export default function AddBusiness() {
         {/* Contact Information */}
         <div className="bg-card p-6 rounded-lg border shadow-sm">
           <h2 className="text-xl font-semibold mb-4">Contact Information</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <Label htmlFor="contactDetails">Contact Details</Label>
               <Input
@@ -349,7 +349,7 @@ export default function AddBusiness() {
           <SocialMediaInput platform="YouTube" register={register} />
 
           {/* Other Links */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
             <div>
               <Label htmlFor="website">Website</Label>
               <Input
@@ -380,7 +380,7 @@ export default function AddBusiness() {
         {/* Assignments */}
         <div className="bg-card p-6 rounded-lg border shadow-sm">
           <h2 className="text-xl font-semibold mb-4">Assignments</h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
             {/* Content Writers */}
             <UserMultiSelect
               label="Assigned Content Writers (CW)"
@@ -442,7 +442,7 @@ export default function AddBusiness() {
         </div>
 
         {/* Actions */}
-        <div className="flex gap-4">
+        <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
           <Button type="submit" disabled={isCreating} className="flex-1">
             {isCreating ? "Creating..." : "Create Business"}
           </Button>

@@ -1,27 +1,20 @@
+/**
+ * Central Types Export
+ * Re-exports all types from domain-specific files for convenient importing
+ */
+
 import type { ComponentType } from "react";
 
-export interface User {
-  _id: string;
-  username: string;
-  roles: string[];
-  createdAt: string;
-  updatedAt: string;
-}
+// Re-export all domain types
+export * from "./api";
+export * from "./user";
+export * from "./business";
+export * from "./content";
+export * from "./auth";
+export * from "./analytics";
+export * from "./socket";
 
-export interface AuthResponse {
-  success: boolean;
-  message: string;
-  data?: {
-    user: User;
-    token?: string;
-  };
-}
-
-export interface LoginCredentials {
-  username: string;
-  password: string;
-}
-
+// UI-specific types (keep here)
 export interface ISidebarItem {
   title: string;
   items: {
